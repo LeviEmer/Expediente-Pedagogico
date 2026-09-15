@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth ----------
+
+enum UserRole {
+  SUPERVISOR
+  INSTRUCTOR
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  role         UserRole
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  instructor   Instructor?
+}
+
+// ---------- Catálogo (currículo) ----------
+
+model CourseType {
+  id          String       @id @default(uuid())
+  name        String // 'Auto', 'Moto', 'Camión'
+  active      Boolean      @default(true)
+  lessons     Lesson[]
+  enrollments Enrollment[]
+}
+
+model Lesson {
+  id               String                   @id @default(uuid())
+  courseTypeId     String
+  courseType       CourseType               @relation(fields: [courseTypeId], references: [id])
+  code             String // 'L00'..'L15'
+  name             String
+  orderIndex       Int
+  hasRubric        Boolean                  @default(true) // false para L00 (solo criterios, sin nivel/barra)
+  active           Boolean                  @default(true)
+  criteria         LessonCriterion[]
+  rubricDimensions LessonRubricDimension[]
+  enrollmentLessons EnrollmentLesson[]
+  classSessionLessons ClassSessionLesson[]
+
+  @@unique([courseTypeId, code])
+}
+
+model LessonCriterion {
+  id                       String                       @id @default(uuid())
+  lessonId                 String
+  lesson                   Lesson                       @relation(fields: [lessonId], references: [id])
+  orderIndex               Int
+  text                     String
+  notApplicableIfAutomatic Boolean                      @default(false) // ver L08 criterio 3 y L09 criterio 1
+  results                  EnrollmentLessonCriterion[]
+}
+
+// La mayoría de lecciones tiene 1 dimensión de rúbrica; L15 tiene 2
+model LessonRubricDimension {
+  id         String              @id @default(uuid())
+  lessonId   String
+  lesson     Lesson              @relation(fields: [lessonId], references: [id])
+  orderIndex Int
+  name       String // ej. 'Cambio a tercera velocidad' o para L15: 'Ubicación final del vehículo'
+  levels     LessonRubricLevel[]
+  scores     EnrollmentLessonRubricScore[]
+}
+
+model LessonRubricLevel {
+  id          String                @id @default(uuid())
+  dimensionId String
+  dimension   LessonRubricDimension @relation(fields: [dimensionId], references: [id])
+  level       Int // 1-4
+  description String
+
+  @@unique([dimensionId, level])
+}
+
+// Evaluación general del alumno (3 dimensiones fijas, catálogo global, no depende de lección)
+model GeneralEvaluationDimension {
+  id         String                        @id @default(uuid())
+  orderIndex Int
+  name       String
+  levels     GeneralEvaluationLevel[]
+  scores     EnrollmentGeneralEvaluationScore[]
+}
+
+model GeneralEvaluationLevel {
+  id          String                      @id @default(uuid())
+  dimensionId String
+  dimension   GeneralEvaluationDimension  @relation(fields: [dimensionId], references: [id])
+  level       Int
+  description String
+
+  @@unique([dimensionId, level])
+}
+
+// ---------- Personas ----------
+
+model Student {
+  id          String       @id @default(uuid())
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  documentId  String?
+  createdAt   DateTime     @default(now())
+  enrollments Enrollment[]
+}
+
+model Instructor {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String
+  active    Boolean  @default(true)
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id])
+
+  enrollments   Enrollment[]
+  classSessions ClassSession[]
+}
+
+// ---------- Matrícula y estado actual del alumno ----------
+
+enum Transmission {
+  ESTANDAR
+  AUTOMATICO
+}
+
+enum EnrollmentStatus {
+  ACTIVO
+  FINALIZADO
+  CANCELADO
+}
+
+model Enrollment {
+  id           String           @id @default(uuid())
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id])
+  courseTypeId String
+  courseType   CourseType       @relation(fields: [courseTypeId], references: [id])
+  instructorId String?
+  instructor   Instructor?      @relation(fields: [instructorId], references: [id])
+  transmission Transmission
+  startDate    DateTime
+  endDate      DateTime?
+  status       EnrollmentStatus @default(ACTIVO)
+
+  // Campos de "Datos generales" del formulario
+  examDate                               DateTime?
+  examScore                              Decimal?
+  recorridoExamenes                      Boolean  @default(false)
+  localizacionHipotecarioVmtPlazaJardin  Boolean  @default(false)
+
+  // null mientras el reporte general final no se haya podido enviar con éxito
+  // (permite detectar fallos y reenviar manualmente desde el panel de supervisor).
+  finalReportSentAt DateTime?
+
+  lessons           EnrollmentLesson[]
+  classSessions     ClassSession[]
+  generalEvaluation EnrollmentGeneralEvaluation?
+
+  createdAt DateTime @default(now())
+}
+
+// Estado ACTUAL de cada lección para la matrícula — esto es lo que se EDITA
+// cada vez que se repite una lección (R4)
+model EnrollmentLesson {
+  id              String    @id @default(uuid())
+  enrollmentId    String
+  enrollment      Enrollment @relation(fields: [enrollmentId], references: [id])
+  lessonId        String
+  lesson          Lesson    @relation(fields: [lessonId], references: [id])
+  isRepeat        Boolean   @default(false) // true si ya se había tomado antes
+  instructorNotes String?
+  firstTaughtOn   DateTime?
+  lastUpdatedOn   DateTime?
+  completedOn     DateTime? // ver R6
+
+  criteriaResults EnrollmentLessonCriterion[]
+  rubricScores    EnrollmentLessonRubricScore[]
+
+  @@unique([enrollmentId, lessonId])
+}
+
+enum CriterionRating {
+  NO
+  MEDIO
+  SI
+  NA
+}
+
+model EnrollmentLessonCriterion {
+  id                 String            @id @default(uuid())
+  enrollmentLessonId String
+  enrollmentLesson   EnrollmentLesson  @relation(fields: [enrollmentLessonId], references: [id])
+  criterionId        String
+  criterion          LessonCriterion   @relation(fields: [criterionId], references: [id])
+  rating             CriterionRating?
+
+  @@unique([enrollmentLessonId, criterionId])
+}
+
+model EnrollmentLessonRubricScore {
+  id                 String                @id @default(uuid())
+  enrollmentLessonId String
+  enrollmentLesson   EnrollmentLesson      @relation(fields: [enrollmentLessonId], references: [id])
+  dimensionId        String
+  dimension          LessonRubricDimension @relation(fields: [dimensionId], references: [id])
+  level              Int? // 1-4, seleccionado manualmente por el instructor
+
+  @@unique([enrollmentLessonId, dimensionId])
+}
+
+// Evaluación general (una por matrícula, editable, se completa normalmente al final)
+model EnrollmentGeneralEvaluation {
+  id                   String     @id @default(uuid())
+  enrollmentId         String     @unique
+  enrollment           Enrollment @relation(fields: [enrollmentId], references: [id])
+  personalObservations String?
+  completedAt          DateTime?
+
+  scores EnrollmentGeneralEvaluationScore[]
+}
+
+model EnrollmentGeneralEvaluationScore {
+  id           String                      @id @default(uuid())
+  evaluationId String
+  evaluation   EnrollmentGeneralEvaluation @relation(fields: [evaluationId], references: [id])
+  dimensionId  String
+  dimension    GeneralEvaluationDimension  @relation(fields: [dimensionId], references: [id])
+  level        Int?
+
+  @@unique([evaluationId, dimensionId])
+}
+
+// ---------- Sesiones de clase (bitácora diaria) ----------
+
+enum SessionStatus {
+  ABIERTA
+  CERRADA
+}
+
+model ClassSession {
+  id           String        @id @default(uuid())
+  enrollmentId String
+  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id])
+  instructorId String
+  instructor   Instructor    @relation(fields: [instructorId], references: [id])
+  sessionDate  DateTime      @db.Date
+  status       SessionStatus @default(ABIERTA)
+  reportSentAt DateTime?
+  createdAt    DateTime      @default(now())
+
+  lessons ClassSessionLesson[]
+
+  @@unique([enrollmentId, sessionDate])
+}
+
+// Snapshot INMUTABLE de lo capturado ese día para esa lección (para el correo diario
+// y para poder mostrar "antes vs. ahora" sin depender de que el estado actual no cambie después)
+model ClassSessionLesson {
+  id                     String       @id @default(uuid())
+  classSessionId         String
+  classSession           ClassSession @relation(fields: [classSessionId], references: [id])
+  lessonId               String
+  lesson                 Lesson       @relation(fields: [lessonId], references: [id])
+  isRepeat               Boolean      @default(false)
+  instructorNotes        String?
+  criteriaSnapshot       Json // [{criterionId, text, rating}]
+  rubricSnapshot         Json // [{dimensionId, name, level}]
+  previousRubricSnapshot Json? // rúbrica del día anterior para esa lección, si aplica
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@unique([classSessionId, lessonId]) // si se edita 2 veces el mismo día, se actualiza, no se duplica
+}
