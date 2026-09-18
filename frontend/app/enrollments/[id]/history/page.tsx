@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { CalendarDays, CheckCircle2, ClipboardCheck, Mail, MailWarning, PlayCircle, RotateCcw } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api, ClassSessionSummary, CriterionRating, Enrollment, EnrollmentLessonProgress } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
+import { Badge, Card, cx, EmptyState, LinkButton, LoadingRow, PageHeader } from "@/components/ui";
 
 const RATING_LABEL: Record<CriterionRating, string> = { NO: "No", MEDIO: "Medio", SI: "Sí", NA: "No aplica" };
 const RATING_DOT: Record<CriterionRating, string> = {
@@ -24,12 +26,16 @@ export default function EnrollmentHistoryPage() {
   const [view, setView] = useState<"estado" | "clases">("estado");
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   function reload() {
     if (!enrollmentId) return;
     api.get<Enrollment>(`/enrollments/${enrollmentId}`).then(setEnrollment);
     api.get<EnrollmentLessonProgress[]>(`/enrollments/${enrollmentId}/progress`).then(setProgress);
-    api.get<ClassSessionSummary[]>(`/enrollments/${enrollmentId}/class-sessions`).then(setSessions);
+    api
+      .get<ClassSessionSummary[]>(`/enrollments/${enrollmentId}/class-sessions`)
+      .then(setSessions)
+      .finally(() => setLoading(false));
   }
 
   useEffect(reload, [enrollmentId]);
@@ -80,123 +86,139 @@ export default function EnrollmentHistoryPage() {
     <div>
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold">Historial del alumno</h1>
-            {enrollment?.student && (
-              <p className="text-sm text-gray-500">
-                {enrollment.student.firstName} {enrollment.student.lastName} · {enrollment.courseType?.name} ·{" "}
-                estado: {enrollment.status}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-3">
-            <Link href={`/enrollments/${enrollmentId}/evaluation`} className="rounded border px-3 py-2 text-sm">
-              Evaluación general / cierre de curso
-            </Link>
-            {user?.role === "INSTRUCTOR" && (
-              <Link
-                href={`/enrollments/${enrollmentId}/session`}
-                className="rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
-              >
-                Clase de hoy
+        <PageHeader
+          title="Historial del alumno"
+          subtitle={
+            enrollment?.student && (
+              <>
+                {enrollment.student.firstName} {enrollment.student.lastName} · {enrollment.courseType?.name} · estado:{" "}
+                {enrollment.status}
+              </>
+            )
+          }
+          actions={
+            <>
+              <Link href={`/enrollments/${enrollmentId}/evaluation`}>
+                <LinkButton variant="secondary" icon={ClipboardCheck}>
+                  Evaluación general
+                </LinkButton>
               </Link>
-            )}
-          </div>
-        </div>
+              {user?.role === "INSTRUCTOR" && (
+                <Link href={`/enrollments/${enrollmentId}/session`}>
+                  <LinkButton icon={PlayCircle}>Clase de hoy</LinkButton>
+                </Link>
+              )}
+            </>
+          }
+        />
 
-        {notice && <p className="mb-4 rounded bg-blue-50 px-3 py-2 text-sm text-blue-700">{notice}</p>}
+        {notice && (
+          <p className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {notice}
+          </p>
+        )}
 
         {user?.role === "SUPERVISOR" && enrollment?.status === "FINALIZADO" && (
           <div
-            className={`mb-4 flex items-center justify-between rounded border px-3 py-2 text-sm ${
-              enrollment.finalReportSentAt ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800"
-            }`}
+            className={cx(
+              "mb-4 flex flex-col gap-1 rounded-lg border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3",
+              enrollment.finalReportSentAt ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800",
+            )}
           >
-            <span>
+            <span className="flex items-center gap-2">
+              {enrollment.finalReportSentAt ? (
+                <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ) : (
+                <MailWarning className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
               {enrollment.finalReportSentAt
                 ? `Reporte final enviado (${new Date(enrollment.finalReportSentAt).toLocaleString("es-CR")})`
                 : "El reporte final no se pudo enviar."}
             </span>
-            <button onClick={resendFinalReport} className="font-medium underline">
+            <button onClick={resendFinalReport} className="self-start font-medium underline sm:self-auto">
               Reenviar
             </button>
           </div>
         )}
 
-        <div className="mb-4 flex gap-2 text-sm">
+        <div className="mb-4 flex flex-wrap gap-2 text-sm">
           <button
             onClick={() => setView("estado")}
-            className={`rounded-full border px-3 py-1 ${
-              view === "estado" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600"
-            }`}
+            className={cx(
+              "rounded-full border px-3 py-1.5 font-medium transition-colors",
+              view === "estado" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+            )}
           >
-            Estado actual ({progress.length} lecciones)
+            Estado actual ({progress.length})
           </button>
           <button
             onClick={() => setView("clases")}
-            className={`rounded-full border px-3 py-1 ${
-              view === "clases" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600"
-            }`}
+            className={cx(
+              "rounded-full border px-3 py-1.5 font-medium transition-colors",
+              view === "clases" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
+            )}
           >
             Clases por día ({sessions.length})
           </button>
         </div>
 
-        {view === "estado" && (
+        {loading && <LoadingRow />}
+
+        {!loading && view === "estado" && (
           <>
             <p className="mb-3 text-sm text-gray-600">
               {completedCount} de {progress.length} lecciones completadas
             </p>
             <div className="space-y-3">
               {progress.map((p) => (
-                <div key={p.id} className="rounded border bg-white p-4">
-                  <div className="flex items-center justify-between">
+                <Card key={p.id} className="p-4" accent={p.completedOn ? "green" : "none"}>
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <h3 className="font-medium">
                       {p.lesson.code} — {p.lesson.name}
                     </h3>
-                    <span className={`text-xs ${p.completedOn ? "text-green-700" : "text-gray-400"}`}>
-                      {p.completedOn ? `Completada (${new Date(p.completedOn).toLocaleDateString("es-CR")})` : "Pendiente"}
-                    </span>
+                    {p.completedOn ? (
+                      <Badge tone="green">
+                        <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                        Completada · {new Date(p.completedOn).toLocaleDateString("es-CR")}
+                      </Badge>
+                    ) : (
+                      <Badge tone="gray">Pendiente</Badge>
+                    )}
                   </div>
                   {p.lastUpdatedOn && (
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
                       Última actualización: {new Date(p.lastUpdatedOn).toLocaleDateString("es-CR")}
-                      {p.isRepeat ? " · repaso" : ""}
+                      {p.isRepeat && (
+                        <span className="inline-flex items-center gap-0.5 text-amber-600">
+                          <RotateCcw className="h-3 w-3" aria-hidden="true" /> repaso
+                        </span>
+                      )}
                     </p>
                   )}
-                  {p.instructorNotes && <p className="mt-2 text-sm">{p.instructorNotes}</p>}
-                </div>
+                  {p.instructorNotes && <p className="mt-2 text-sm text-gray-700">{p.instructorNotes}</p>}
+                </Card>
               ))}
             </div>
           </>
         )}
 
-        {view === "clases" && (
+        {!loading && view === "clases" && (
           <div className="space-y-4">
-            {sessions.length === 0 && <p className="text-sm text-gray-500">Todavía no hay clases registradas.</p>}
+            {sessions.length === 0 && (
+              <EmptyState icon={CalendarDays} title="Todavía no hay clases registradas" description="Aquí aparecerá cada sesión una vez que se cierre y se envíe el reporte diario." />
+            )}
             {sessions.map((s) => (
-              <div key={s.id} className="rounded-r-lg border-y border-r border-gray-200 border-l-4 border-l-blue-500 bg-white p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-medium">
+              <Card key={s.id} accent="blue" className="p-4">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-1.5 font-medium">
+                    <CalendarDays className="h-4 w-4 text-gray-400" aria-hidden="true" />
                     {new Date(s.sessionDate).toLocaleDateString("es-CR", { year: "numeric", month: "long", day: "numeric" })}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        s.status !== "CERRADA"
-                          ? "bg-amber-50 text-amber-800"
-                          : s.reportSentAt
-                            ? "bg-green-50 text-green-800"
-                            : "bg-red-50 text-red-800"
-                      }`}
-                    >
-                      {s.status !== "CERRADA"
-                        ? "Abierta (sin cerrar)"
-                        : s.reportSentAt
-                          ? "Cerrada · reporte enviado"
-                          : "Cerrada · correo no enviado"}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={s.status !== "CERRADA" ? "amber" : s.reportSentAt ? "green" : "red"}>
+                      {s.status !== "CERRADA" ? "Abierta (sin cerrar)" : s.reportSentAt ? "Reporte enviado" : "Correo no enviado"}
+                    </Badge>
                     {s.status === "CERRADA" && (
                       <>
                         <button
@@ -223,7 +245,7 @@ export default function EnrollmentHistoryPage() {
 
                 <div className="space-y-3">
                   {s.lessons.map((l) => (
-                    <div key={l.id} className="rounded border border-gray-100 bg-gray-50 p-3">
+                    <div key={l.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                       <p className="text-sm font-medium">
                         {l.lesson.code} — {l.lesson.name}
                         {l.isRepeat && (
@@ -258,7 +280,7 @@ export default function EnrollmentHistoryPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}

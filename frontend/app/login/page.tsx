@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { GraduationCap, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { Button, TextField } from "@/components/ui";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -27,42 +29,29 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 rounded-lg border bg-white p-8 shadow-sm">
-        <div>
-          <h1 className="text-xl font-semibold">Expediente Pedagógico</h1>
-          <p className="text-sm text-gray-500">Inicia sesión para continuar</p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50/60 to-slate-50 px-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg shadow-gray-200/50">
+        <div className="flex flex-col items-center text-center">
+          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
+            <GraduationCap className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <h1 className="text-xl font-semibold text-gray-900">Expediente Pedagógico</h1>
+          <p className="text-sm text-gray-500">Bienvenido de nuevo — inicia sesión para continuar</p>
         </div>
 
-        {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {error && (
+          <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {error}
+          </p>
+        )}
 
-        <div>
-          <label className="block text-sm font-medium">Correo</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Contraseña</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2 text-sm"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
+        <TextField label="Correo" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <TextField label="Contraseña" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        <Button type="submit" busy={busy} className="w-full">
           {busy ? "Ingresando..." : "Ingresar"}
-        </button>
+        </Button>
       </form>
     </div>
   );

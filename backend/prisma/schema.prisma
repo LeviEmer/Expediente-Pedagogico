@@ -7,6 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------- Sucursales ----------
+
+// Aislamiento entre sucursales: cada Student/Instructor/Enrollment pertenece
+// a una sola sucursal, y cada consulta del backend filtra por la sucursal del
+// usuario autenticado. El catálogo de cursos/lecciones es global (compartido).
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users       User[]
+  instructors Instructor[]
+  students    Student[]
+  enrollments Enrollment[]
+}
+
 // ---------- Auth ----------
 
 enum UserRole {
@@ -20,6 +37,10 @@ model User {
   passwordHash String
   role         UserRole
   active       Boolean     @default(true)
+  // Sucursal del usuario: para SUPERVISOR delimita qué ve; para INSTRUCTOR se
+  // mantiene igual a la de su registro Instructor (fuente de verdad operativa).
+  branchId     String?
+  branch       Branch?     @relation(fields: [branchId], references: [id])
   createdAt    DateTime    @default(now())
   instructor   Instructor?
 }
@@ -105,6 +126,8 @@ model GeneralEvaluationLevel {
 
 model Student {
   id          String       @id @default(uuid())
+  branchId    String
+  branch      Branch       @relation(fields: [branchId], references: [id])
   firstName   String
   lastName    String
   email       String
@@ -116,6 +139,8 @@ model Student {
 
 model Instructor {
   id        String   @id @default(uuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
   firstName String
   lastName  String
   email     String
@@ -142,6 +167,8 @@ enum EnrollmentStatus {
 
 model Enrollment {
   id           String           @id @default(uuid())
+  branchId     String
+  branch       Branch           @relation(fields: [branchId], references: [id])
   studentId    String
   student      Student          @relation(fields: [studentId], references: [id])
   courseTypeId String

@@ -14,11 +14,26 @@ export class EnrollmentsService {
   ) {}
 
   // R1 — Alta de matrícula: clona todas las Lesson activas del CourseType hacia
-  // EnrollmentLesson (vacías), fijando el currículo de esta matrícula.
-  async create(dto: CreateEnrollmentDto) {
+  // EnrollmentLesson (vacías), fijando el currículo de esta matrícula. La
+  // matrícula queda en la sucursal del usuario que la crea; el alumno y el
+  // instructor (si se especifica) deben pertenecer a esa misma sucursal.
+  async create(dto: CreateEnrollmentDto, user: AuthenticatedUser) {
+    const student = await this.prisma.student.findUnique({ where: { id: dto.studentId } });
+    if (!student || student.branchId !== user.branchId) {
+      throw new ForbiddenException("El alumno no pertenece a tu sucursal");
+    }
+
+    if (dto.instructorId) {
+      const instructor = await this.prisma.instructor.findUnique({ where: { id: dto.instructorId } });
+      if (!instructor || instructor.branchId !== user.branchId) {
+        throw new ForbiddenException("El instructor no pertenece a tu sucursal");
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const enrollment = await tx.enrollment.create({
         data: {
+          branchId: user.branchId,
           studentId: dto.studentId,
           courseTypeId: dto.courseTypeId,
           instructorId: dto.instructorId,
@@ -50,18 +65,23 @@ export class EnrollmentsService {
     });
   }
 
-  // Listado completo de matrículas, para el panel de supervisor (ve todo).
-  findAll() {
+  // Listado completo de matrículas de la sucursal, para el panel de supervisor.
+  findAll(user: AuthenticatedUser) {
     return this.prisma.enrollment.findMany({
+      where: { branchId: user.branchId },
       include: { student: true, courseType: true, instructor: true },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  // Un instructor solo puede ver el expediente de un alumno mientras el
-  // alumno está actualmente asignado a él; el supervisor ve todo.
-  private assertAccess(enrollment: { instructorId: string | null }, user?: AuthenticatedUser) {
+  // Aislamiento entre sucursales — nadie ve matrículas de otra sucursal, ni
+  // siquiera el supervisor. Además, un instructor solo puede ver el
+  // expediente de un alumno mientras esté actualmente asignado a él.
+  private assertAccess(enrollment: { branchId: string; instructorId: string | null }, user?: AuthenticatedUser) {
     if (!user) return;
+    if (enrollment.branchId !== user.branchId) {
+      throw new ForbiddenException("Esta matrícula no pertenece a tu sucursal");
+    }
     if (user.role === "INSTRUCTOR" && enrollment.instructorId !== user.instructorId) {
       throw new ForbiddenException("Este alumno no está asignado a tu cuenta");
     }
@@ -102,11 +122,13 @@ export class EnrollmentsService {
 
   // Búsqueda de un alumno por nombre para que un instructor distinto al
   // asignado pueda localizarlo y, si corresponde, asignárselo (ver claimInstructor).
-  // Solo expone datos mínimos — nunca el progreso/lecciones — mientras no esté asignado.
-  async search(query: string) {
+  // Solo expone datos mínimos — nunca el progreso/lecciones — y solo dentro de
+  // la misma sucursal del usuario (aislamiento entre sucursales).
+  async search(query: string, user: AuthenticatedUser) {
     if (!query || query.trim().length < 2) return [];
     const enrollments = await this.prisma.enrollment.findMany({
       where: {
+        branchId: user.branchId,
         status: "ACTIVO",
         student: {
           OR: [
@@ -130,14 +152,25 @@ export class EnrollmentsService {
 
   // R-handoff — reasigna el instructor a cargo de la matrícula. Un instructor
   // solo puede asignársela a sí mismo (se la "lleva" al iniciar la clase);
-  // el supervisor puede asignarla a cualquiera.
+  // el supervisor puede asignarla a cualquiera de su misma sucursal. En
+  // ambos casos la matrícula debe pertenecer a la sucursal del usuario.
   async claimInstructor(enrollmentId: string, user: AuthenticatedUser, targetInstructorId?: string) {
     const enrollment = await this.prisma.enrollment.findUnique({ where: { id: enrollmentId } });
     if (!enrollment) throw new NotFoundException("Matrícula no encontrada");
+    if (enrollment.branchId !== user.branchId) {
+      throw new ForbiddenException("Esta matrícula no pertenece a tu sucursal");
+    }
 
     const newInstructorId = user.role === "SUPERVISOR" ? (targetInstructorId ?? user.instructorId) : user.instructorId;
     if (!newInstructorId) {
       throw new ForbiddenException("No se pudo determinar el instructor a asignar");
+    }
+
+    if (user.role === "SUPERVISOR") {
+      const targetInstructor = await this.prisma.instructor.findUnique({ where: { id: newInstructorId } });
+      if (!targetInstructor || targetInstructor.branchId !== user.branchId) {
+        throw new ForbiddenException("El instructor no pertenece a tu sucursal");
+      }
     }
 
     return this.prisma.enrollment.update({

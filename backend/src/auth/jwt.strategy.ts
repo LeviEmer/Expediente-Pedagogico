@@ -7,6 +7,7 @@ export type JwtPayload = {
   email: string;
   role: "SUPERVISOR" | "INSTRUCTOR";
   instructorId?: string;
+  branchId: string;
 };
 
 @Injectable()
@@ -25,6 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       role: payload.role,
       instructorId: payload.instructorId,
+      branchId: payload.branchId,
     };
   }
 }

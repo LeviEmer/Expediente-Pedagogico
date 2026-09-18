@@ -3,4 +3,5 @@ export type AuthenticatedUser = {
   email: string;
   role: "SUPERVISOR" | "INSTRUCTOR";
   instructorId?: string;
+  branchId: string;
 };

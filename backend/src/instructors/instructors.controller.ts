@@ -2,6 +2,8 @@ import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/co
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../common/roles.guard";
 import { Roles } from "../common/roles.decorator";
+import { CurrentUser } from "../common/current-user.decorator";
+import { AuthenticatedUser } from "../common/types";
 import { InstructorsService } from "./instructors.service";
 import { CreateInstructorDto } from "./dto/create-instructor.dto";
 import { UpdateInstructorDto } from "./dto/update-instructor.dto";
@@ -13,30 +15,30 @@ export class InstructorsController {
 
   @Post()
   @Roles("SUPERVISOR")
-  create(@Body() dto: CreateInstructorDto) {
-    return this.instructorsService.create(dto);
+  create(@Body() dto: CreateInstructorDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.instructorsService.create(dto, user);
   }
 
   @Get()
   @Roles("SUPERVISOR")
-  findAll() {
-    return this.instructorsService.findAll();
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.instructorsService.findAll(user);
   }
 
   @Get(":id")
   @Roles("SUPERVISOR")
-  findOne(@Param("id") id: string) {
-    return this.instructorsService.findOne(id);
+  findOne(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.instructorsService.findOne(id, user);
   }
 
   @Patch(":id")
   @Roles("SUPERVISOR")
-  update(@Param("id") id: string, @Body() dto: UpdateInstructorDto) {
-    return this.instructorsService.update(id, dto);
+  update(@Param("id") id: string, @Body() dto: UpdateInstructorDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.instructorsService.update(id, dto, user);
   }
 
   @Get(":id/enrollments")
-  findAssignedEnrollments(@Param("id") id: string) {
-    return this.instructorsService.findAssignedActiveEnrollments(id);
+  findAssignedEnrollments(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.instructorsService.findAssignedActiveEnrollments(id, user);
   }
 }

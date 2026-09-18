@@ -2,13 +2,52 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  Car,
+  CheckCircle2,
+  ClipboardList,
+  Pencil,
+  Power,
+  Search,
+  UserCog,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { api, CourseType, Enrollment, Instructor, Student } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
+import { Badge, Button, cx, EmptyState, PageHeader, TextField } from "@/components/ui";
 
 function matches(query: string, ...fields: (string | undefined | null)[]) {
   if (!query.trim()) return true;
   const q = query.trim().toLowerCase();
   return fields.some((f) => f?.toLowerCase().includes(q));
+}
+
+function initials(a?: string, b?: string) {
+  return `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase();
+}
+
+function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="relative mb-3 max-w-xs">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+      <TextField value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="pl-9" />
+    </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div>
+        <p className="text-lg font-semibold leading-tight text-gray-900">{value}</p>
+        <p className="text-xs text-gray-500">{label}</p>
+      </div>
+    </div>
+  );
 }
 
 export default function SupervisorPage() {
@@ -53,6 +92,8 @@ export default function SupervisorPage() {
       ),
     [enrollments, enrollmentQuery],
   );
+
+  const activeEnrollmentsCount = enrollments.filter((e) => e.status === "ACTIVO").length;
 
   async function createInstructor(e: React.FormEvent) {
     e.preventDefault();
@@ -126,40 +167,61 @@ export default function SupervisorPage() {
     }
   }
 
+  const editInputClass = "rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
+
   return (
     <div>
       <NavBar />
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
-        <h1 className="text-lg font-semibold">Panel de supervisor</h1>
-        {status && <p className="rounded bg-blue-50 px-3 py-2 text-sm text-blue-700">{status}</p>}
+        <PageHeader eyebrow="Panel de supervisor" title="Todo tu equipo, en un solo lugar" />
+
+        {status && (
+          <p className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {status}
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard icon={Users} label="Alumnos" value={students.length} />
+          <StatCard icon={UserCog} label="Instructores" value={instructors.filter((i) => i.active !== false).length} />
+          <StatCard icon={ClipboardList} label="Matrículas activas" value={activeEnrollmentsCount} />
+          <StatCard icon={Car} label="Tipos de curso" value={courseTypes.length} />
+        </div>
 
         <section>
-          <h2 className="mb-2 font-medium">Tipos de curso</h2>
-          <div className="flex gap-2">
+          <h2 className="mb-2 flex items-center gap-1.5 font-medium text-gray-800">
+            <Car className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            Tipos de curso
+          </h2>
+          <div className="flex flex-wrap gap-2">
             {courseTypes.map((c) => (
-              <span key={c.id} className="rounded-full border bg-white px-3 py-1 text-sm">
+              <Badge key={c.id} tone="blue">
                 {c.name}
-              </span>
+              </Badge>
             ))}
           </div>
         </section>
 
-        <section>
-          <h2 className="mb-2 font-medium">Instructores</h2>
-          <form onSubmit={createInstructor} className="mb-3 flex flex-wrap gap-2">
+        <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 flex items-center gap-1.5 font-medium text-gray-800">
+            <UserCog className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            Instructores
+          </h2>
+          <form onSubmit={createInstructor} className="mb-4 flex flex-wrap gap-2">
             <input
               placeholder="Nombre"
               required
               value={newInstructor.firstName}
               onChange={(e) => setNewInstructor((s) => ({ ...s, firstName: e.target.value }))}
-              className="rounded border px-3 py-1.5 text-sm"
+              className={editInputClass}
             />
             <input
               placeholder="Apellidos"
               required
               value={newInstructor.lastName}
               onChange={(e) => setNewInstructor((s) => ({ ...s, lastName: e.target.value }))}
-              className="rounded border px-3 py-1.5 text-sm"
+              className={editInputClass}
             />
             <input
               placeholder="Correo"
@@ -167,174 +229,203 @@ export default function SupervisorPage() {
               required
               value={newInstructor.email}
               onChange={(e) => setNewInstructor((s) => ({ ...s, email: e.target.value }))}
-              className="rounded border px-3 py-1.5 text-sm"
+              className={editInputClass}
             />
             <input
               placeholder="Contraseña (opcional, crea acceso)"
               value={newInstructor.password}
               onChange={(e) => setNewInstructor((s) => ({ ...s, password: e.target.value }))}
-              className="rounded border px-3 py-1.5 text-sm"
+              className={editInputClass}
             />
-            <button type="submit" className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
+            <Button type="submit" icon={UserPlus}>
               Agregar
-            </button>
+            </Button>
           </form>
 
-          <input
-            value={instructorQuery}
-            onChange={(e) => setInstructorQuery(e.target.value)}
-            placeholder="Buscar instructor..."
-            className="mb-2 w-full max-w-xs rounded border px-3 py-1.5 text-sm"
-          />
+          <SearchInput value={instructorQuery} onChange={setInstructorQuery} placeholder="Buscar instructor..." />
 
-          <ul className="divide-y rounded border bg-white text-sm">
-            {filteredInstructors.map((i) => (
-              <li key={i.id} className="px-4 py-2">
-                {editingInstructorId === i.id ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      value={instructorEdit.firstName}
-                      onChange={(e) => setInstructorEdit((s) => ({ ...s, firstName: e.target.value }))}
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <input
-                      value={instructorEdit.lastName}
-                      onChange={(e) => setInstructorEdit((s) => ({ ...s, lastName: e.target.value }))}
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <input
-                      value={instructorEdit.email}
-                      onChange={(e) => setInstructorEdit((s) => ({ ...s, email: e.target.value }))}
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <button onClick={() => saveInstructor(i.id)} className="text-xs font-medium text-blue-700 hover:underline">
-                      Guardar
-                    </button>
-                    <button onClick={() => setEditingInstructorId(null)} className="text-xs text-gray-500 hover:underline">
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className={i.active === false ? "text-gray-400 line-through" : ""}>
-                      {i.firstName} {i.lastName} — {i.email}
-                      {i.active === false && <span className="ml-2 text-xs no-underline">(inactivo)</span>}
-                    </span>
-                    <div className="flex gap-3 text-xs">
-                      <button onClick={() => startEditInstructor(i)} className="text-blue-700 hover:underline">
-                        Editar
+          {filteredInstructors.length === 0 ? (
+            <EmptyState icon={UserCog} title="No hay instructores todavía" description="Agrega el primero con el formulario de arriba." />
+          ) : (
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-100 text-sm">
+              {filteredInstructors.map((i) => (
+                <li key={i.id} className="px-4 py-2.5">
+                  {editingInstructorId === i.id ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        value={instructorEdit.firstName}
+                        onChange={(e) => setInstructorEdit((s) => ({ ...s, firstName: e.target.value }))}
+                        className={editInputClass}
+                      />
+                      <input
+                        value={instructorEdit.lastName}
+                        onChange={(e) => setInstructorEdit((s) => ({ ...s, lastName: e.target.value }))}
+                        className={editInputClass}
+                      />
+                      <input
+                        value={instructorEdit.email}
+                        onChange={(e) => setInstructorEdit((s) => ({ ...s, email: e.target.value }))}
+                        className={editInputClass}
+                      />
+                      <button onClick={() => saveInstructor(i.id)} className="text-xs font-medium text-blue-700 hover:underline">
+                        Guardar
                       </button>
-                      <button onClick={() => toggleInstructorActive(i)} className="text-gray-500 hover:underline">
-                        {i.active === false ? "Reactivar" : "Desactivar"}
+                      <button onClick={() => setEditingInstructorId(null)} className="text-xs text-gray-500 hover:underline">
+                        Cancelar
                       </button>
                     </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="mb-2 font-medium">Matrículas</h2>
-          <input
-            value={enrollmentQuery}
-            onChange={(e) => setEnrollmentQuery(e.target.value)}
-            placeholder="Buscar matrícula por alumno, curso o instructor..."
-            className="mb-2 w-full max-w-xs rounded border px-3 py-1.5 text-sm"
-          />
-          <ul className="divide-y rounded border bg-white text-sm">
-            {filteredEnrollments.length === 0 && <li className="px-4 py-3 text-gray-500">No hay matrículas que coincidan.</li>}
-            {filteredEnrollments.map((e) => (
-              <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-2">
-                <span>
-                  {e.student?.firstName} {e.student?.lastName} — {e.courseType?.name} · {e.transmission} · {e.status}
-                </span>
-                <div className="flex items-center gap-3">
-                  <select
-                    value={e.instructor?.id ?? ""}
-                    onChange={(ev) => reassignInstructor(e.id, ev.target.value)}
-                    className="rounded border px-2 py-1 text-xs"
-                  >
-                    <option value="" disabled>
-                      Sin instructor
-                    </option>
-                    {instructors
-                      .filter((i) => i.active !== false)
-                      .map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.firstName} {i.lastName}
-                        </option>
-                      ))}
-                  </select>
-                  <Link href={`/enrollments/${e.id}/history`} className="text-xs text-blue-700 hover:underline">
-                    Ver historial y clases
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="mb-2 font-medium">Alumnos</h2>
-          <input
-            value={studentQuery}
-            onChange={(e) => setStudentQuery(e.target.value)}
-            placeholder="Buscar alumno..."
-            className="mb-2 w-full max-w-xs rounded border px-3 py-1.5 text-sm"
-          />
-          <ul className="divide-y rounded border bg-white text-sm">
-            {filteredStudents.map((s) => (
-              <li key={s.id} className="px-4 py-2">
-                {editingStudentId === s.id ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      value={studentEdit.firstName}
-                      onChange={(e) => setStudentEdit((v) => ({ ...v, firstName: e.target.value }))}
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <input
-                      value={studentEdit.lastName}
-                      onChange={(e) => setStudentEdit((v) => ({ ...v, lastName: e.target.value }))}
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <input
-                      value={studentEdit.email}
-                      onChange={(e) => setStudentEdit((v) => ({ ...v, email: e.target.value }))}
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <input
-                      value={studentEdit.phone}
-                      onChange={(e) => setStudentEdit((v) => ({ ...v, phone: e.target.value }))}
-                      placeholder="Teléfono"
-                      className="rounded border px-2 py-1 text-sm"
-                    />
-                    <button onClick={() => saveStudent(s.id)} className="text-xs font-medium text-blue-700 hover:underline">
-                      Guardar
-                    </button>
-                    <button onClick={() => setEditingStudentId(null)} className="text-xs text-gray-500 hover:underline">
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span>
-                      {s.firstName} {s.lastName} — {s.email}
-                    </span>
-                    <div className="flex gap-3 text-xs">
-                      <button onClick={() => startEditStudent(s)} className="text-blue-700 hover:underline">
-                        Editar
-                      </button>
-                      <Link href="/enrollments/new" className="text-blue-700 hover:underline">
-                        Nueva matrícula
-                      </Link>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className={cx(
+                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                            i.active === false ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-blue-700",
+                          )}
+                        >
+                          {initials(i.firstName, i.lastName)}
+                        </span>
+                        <span className={cx("break-words", i.active === false && "text-gray-400 line-through")}>
+                          {i.firstName} {i.lastName} — {i.email}
+                        </span>
+                        {i.active === false && <Badge tone="gray">Inactivo</Badge>}
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <button onClick={() => startEditInstructor(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 hover:text-blue-700">
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                          Editar
+                        </button>
+                        <button onClick={() => toggleInstructorActive(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50">
+                          <Power className="h-3.5 w-3.5" aria-hidden="true" />
+                          {i.active === false ? "Reactivar" : "Desactivar"}
+                        </button>
+                      </div>
                     </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 flex items-center gap-1.5 font-medium text-gray-800">
+            <ClipboardList className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            Matrículas
+          </h2>
+          <SearchInput value={enrollmentQuery} onChange={setEnrollmentQuery} placeholder="Buscar por alumno, curso o instructor..." />
+
+          {filteredEnrollments.length === 0 ? (
+            <EmptyState icon={ClipboardList} title="No hay matrículas que coincidan" />
+          ) : (
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-100 text-sm">
+              {filteredEnrollments.map((e) => (
+                <li key={e.id} className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
+                      {initials(e.student?.firstName, e.student?.lastName)}
+                    </span>
+                    <span className="break-words">
+                      {e.student?.firstName} {e.student?.lastName} — {e.courseType?.name} · {e.transmission}
+                    </span>
+                    <Badge tone={e.status === "ACTIVO" ? "green" : e.status === "FINALIZADO" ? "blue" : "gray"}>{e.status}</Badge>
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={e.instructor?.id ?? ""}
+                      onChange={(ev) => reassignInstructor(e.id, ev.target.value)}
+                      className="rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                    >
+                      <option value="" disabled>
+                        Sin instructor
+                      </option>
+                      {instructors
+                        .filter((i) => i.active !== false)
+                        .map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {i.firstName} {i.lastName}
+                          </option>
+                        ))}
+                    </select>
+                    <Link href={`/enrollments/${e.id}/history`} className="text-xs font-medium text-blue-700 hover:underline">
+                      Ver historial y clases
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 flex items-center gap-1.5 font-medium text-gray-800">
+            <Users className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            Alumnos
+          </h2>
+          <SearchInput value={studentQuery} onChange={setStudentQuery} placeholder="Buscar alumno..." />
+
+          {filteredStudents.length === 0 ? (
+            <EmptyState icon={Users} title="No hay alumnos todavía" />
+          ) : (
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-100 text-sm">
+              {filteredStudents.map((s) => (
+                <li key={s.id} className="px-4 py-2.5">
+                  {editingStudentId === s.id ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        value={studentEdit.firstName}
+                        onChange={(e) => setStudentEdit((v) => ({ ...v, firstName: e.target.value }))}
+                        className={editInputClass}
+                      />
+                      <input
+                        value={studentEdit.lastName}
+                        onChange={(e) => setStudentEdit((v) => ({ ...v, lastName: e.target.value }))}
+                        className={editInputClass}
+                      />
+                      <input
+                        value={studentEdit.email}
+                        onChange={(e) => setStudentEdit((v) => ({ ...v, email: e.target.value }))}
+                        className={editInputClass}
+                      />
+                      <input
+                        value={studentEdit.phone}
+                        onChange={(e) => setStudentEdit((v) => ({ ...v, phone: e.target.value }))}
+                        placeholder="Teléfono"
+                        className={editInputClass}
+                      />
+                      <button onClick={() => saveStudent(s.id)} className="text-xs font-medium text-blue-700 hover:underline">
+                        Guardar
+                      </button>
+                      <button onClick={() => setEditingStudentId(null)} className="text-xs text-gray-500 hover:underline">
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
+                          {initials(s.firstName, s.lastName)}
+                        </span>
+                        <span className="break-words">
+                          {s.firstName} {s.lastName} — {s.email}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <button onClick={() => startEditStudent(s)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 hover:text-blue-700">
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                          Editar
+                        </button>
+                        <Link href="/enrollments/new" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-blue-700 hover:bg-blue-50">
+                          <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                          Nueva matrícula
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </main>
     </div>

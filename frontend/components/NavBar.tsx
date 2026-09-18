@@ -1,37 +1,62 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { GraduationCap, LayoutDashboard, LogOut, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { cx } from "@/components/ui";
+
+function NavLink({ href, icon: Icon, active, children }: { href: string; icon: typeof Users; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={cx(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
+        active ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+      )}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
+      {children}
+    </Link>
+  );
+}
 
 export function NavBar() {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="h-2 w-2 rounded-full bg-blue-600" aria-hidden="true" />
-          Expediente Pedagógico
+    <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-gray-900">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+            <GraduationCap className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="whitespace-nowrap">Expediente Pedagógico</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex flex-wrap items-center gap-1 text-sm">
           {user?.role === "INSTRUCTOR" && (
             <>
-              <Link href="/dashboard" className="text-gray-700 hover:text-blue-700">
+              <NavLink href="/dashboard" icon={Users} active={pathname === "/dashboard"}>
                 Mis alumnos
-              </Link>
-              <Link href="/enrollments/new" className="text-gray-700 hover:text-blue-700">
+              </NavLink>
+              <NavLink href="/enrollments/new" icon={UserPlus} active={pathname === "/enrollments/new"}>
                 Nueva matrícula
-              </Link>
+              </NavLink>
             </>
           )}
           {user?.role === "SUPERVISOR" && (
-            <Link href="/supervisor" className="text-gray-700 hover:text-blue-700">
+            <NavLink href="/supervisor" icon={LayoutDashboard} active={pathname === "/supervisor"}>
               Panel supervisor
-            </Link>
+            </NavLink>
           )}
           {user && (
-            <button onClick={logout} className="text-gray-400 hover:text-gray-600">
-              Salir ({user.email})
+            <button
+              onClick={logout}
+              className="ml-1 inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-700"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{user.email}</span>
             </button>
           )}
         </nav>

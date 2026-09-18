@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle, Car, ClipboardList, GraduationCap, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api, CourseType, Instructor, Student } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
+import { Button, PageHeader } from "@/components/ui";
+
+const inputClass =
+  "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
 
 export default function NewEnrollmentPage() {
   const { user } = useAuth();
@@ -87,26 +92,40 @@ export default function NewEnrollmentPage() {
     <div>
       <NavBar />
       <main className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="mb-4 text-lg font-semibold">Nueva matrícula</h1>
+        <PageHeader eyebrow="Nueva matrícula" title="Matricular un alumno" subtitle="Completa los datos para empezar a darle clases." />
 
-        <form onSubmit={onSubmit} className="space-y-6 rounded border bg-white p-6">
-          {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        <form onSubmit={onSubmit} className="space-y-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+          {error && (
+            <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {error}
+            </p>
+          )}
 
           <fieldset className="space-y-3">
-            <legend className="text-sm font-semibold">Alumno</legend>
-            <div className="flex gap-4 text-sm">
-              <label className="flex items-center gap-1">
-                <input type="radio" checked={studentMode === "new"} onChange={() => setStudentMode("new")} />
+            <legend className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+              <UserPlus className="h-4 w-4 text-blue-600" aria-hidden="true" />
+              Alumno
+            </legend>
+            <div className="flex gap-2 text-sm">
+              <button
+                type="button"
+                onClick={() => setStudentMode("new")}
+                className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${studentMode === "new" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+              >
                 Alumno nuevo
-              </label>
-              <label className="flex items-center gap-1">
-                <input type="radio" checked={studentMode === "existing"} onChange={() => setStudentMode("existing")} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setStudentMode("existing")}
+                className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${studentMode === "existing" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
+              >
                 Alumno existente
-              </label>
+              </button>
             </div>
 
             {studentMode === "existing" ? (
-              <select value={studentId} onChange={(e) => setStudentId(e.target.value)} required className="w-full rounded border px-3 py-2 text-sm">
+              <select value={studentId} onChange={(e) => setStudentId(e.target.value)} required className={inputClass}>
                 <option value="">Seleccionar alumno...</option>
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -115,43 +134,41 @@ export default function NewEnrollmentPage() {
                 ))}
               </select>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Nombre" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="rounded border px-3 py-2 text-sm" />
-                <input placeholder="Apellidos" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="rounded border px-3 py-2 text-sm" />
-                <input placeholder="Correo" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-2 rounded border px-3 py-2 text-sm" />
-                <input placeholder="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} className="col-span-2 rounded border px-3 py-2 text-sm" />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input placeholder="Nombre" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+                <input placeholder="Apellidos" required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+                <input placeholder="Correo" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={`sm:col-span-2 ${inputClass}`} />
+                <input placeholder="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} className={`sm:col-span-2 ${inputClass}`} />
               </div>
             )}
           </fieldset>
 
-          <fieldset className="space-y-3">
-            <legend className="text-sm font-semibold">Curso</legend>
-            <div className="grid grid-cols-2 gap-3">
-              <select value={courseTypeId} onChange={(e) => setCourseTypeId(e.target.value)} required className="rounded border px-3 py-2 text-sm">
+          <fieldset className="space-y-3 border-t border-gray-100 pt-5">
+            <legend className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+              <Car className="h-4 w-4 text-blue-600" aria-hidden="true" />
+              Curso
+            </legend>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <select value={courseTypeId} onChange={(e) => setCourseTypeId(e.target.value)} required className={inputClass}>
                 {courseTypes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
-              <select value={transmission} onChange={(e) => setTransmission(e.target.value as "ESTANDAR" | "AUTOMATICO")} className="rounded border px-3 py-2 text-sm">
+              <select value={transmission} onChange={(e) => setTransmission(e.target.value as "ESTANDAR" | "AUTOMATICO")} className={inputClass}>
                 <option value="ESTANDAR">Estándar</option>
                 <option value="AUTOMATICO">Automático</option>
               </select>
-              <label className="col-span-2 text-sm">
+              <label className="text-sm text-gray-700 sm:col-span-2">
                 Fecha de inicio
-                <input type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 text-sm" />
+                <input type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`mt-1 ${inputClass}`} />
               </label>
 
               {user?.role === "SUPERVISOR" && (
-                <label className="col-span-2 text-sm">
+                <label className="text-sm text-gray-700 sm:col-span-2">
                   Instructor asignado
-                  <select
-                    value={instructorId}
-                    onChange={(e) => setInstructorId(e.target.value)}
-                    required
-                    className="mt-1 w-full rounded border px-3 py-2 text-sm"
-                  >
+                  <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)} required className={`mt-1 ${inputClass}`}>
                     <option value="">Seleccionar instructor...</option>
                     {instructors.map((i) => (
                       <option key={i.id} value={i.id}>
@@ -169,21 +186,24 @@ export default function NewEnrollmentPage() {
             </div>
           </fieldset>
 
-          <fieldset className="space-y-2 text-sm">
-            <legend className="text-sm font-semibold">Datos generales</legend>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={recorridoExamenes} onChange={(e) => setRecorridoExamenes(e.target.checked)} />
+          <fieldset className="space-y-2 border-t border-gray-100 pt-5 text-sm">
+            <legend className="mb-1 flex items-center gap-1.5 font-semibold text-gray-800">
+              <ClipboardList className="h-4 w-4 text-blue-600" aria-hidden="true" />
+              Datos generales
+            </legend>
+            <label className="flex items-center gap-2 text-gray-700">
+              <input type="checkbox" checked={recorridoExamenes} onChange={(e) => setRecorridoExamenes(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400" />
               Recorrido de exámenes
             </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={localizacion} onChange={(e) => setLocalizacion(e.target.checked)} />
+            <label className="flex items-center gap-2 text-gray-700">
+              <input type="checkbox" checked={localizacion} onChange={(e) => setLocalizacion(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400" />
               Localización (Hipotecario / VMT / Plaza / Jardín)
             </label>
           </fieldset>
 
-          <button type="submit" disabled={busy} className="w-full rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="submit" icon={GraduationCap} busy={busy} className="w-full">
             {busy ? "Guardando..." : "Matricular y comenzar clase de hoy"}
-          </button>
+          </Button>
         </form>
       </main>
     </div>

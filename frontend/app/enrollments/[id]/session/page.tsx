@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { Check, CheckCircle2, RotateCcw, Save, Send, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api, CriterionRating, Enrollment, EnrollmentLessonProgress, Lesson } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
+import { Button } from "@/components/ui";
 
 type LessonFormState = {
   criteria: Record<string, CriterionRating>;
@@ -172,7 +174,10 @@ export default function ClassSessionPage() {
     <div>
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="mb-1 text-lg font-semibold">Clase de hoy</h1>
+        <div className="mb-1 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-blue-600" aria-hidden="true" />
+          <h1 className="text-xl font-semibold text-gray-900">Clase de hoy</h1>
+        </div>
         {enrollment?.student && (
           <p className="mb-4 text-sm text-gray-500">
             {enrollment.student.firstName} {enrollment.student.lastName} · {enrollment.courseType?.name} ·{" "}
@@ -181,21 +186,27 @@ export default function ClassSessionPage() {
         )}
 
         {totalCount > 0 && (
-          <div className="mb-4 flex items-center gap-3">
-            <div className="h-1.5 flex-1 rounded-full bg-gray-200">
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
               <div
-                className="h-1.5 rounded-full bg-blue-600"
+                className="h-2 rounded-full bg-blue-600 transition-all"
                 style={{ width: `${Math.round((completedCount / totalCount) * 100)}%` }}
               />
             </div>
-            <span className="whitespace-nowrap text-xs text-gray-500">
+            <span className="whitespace-nowrap text-xs font-medium text-gray-500">
               {completedCount}/{totalCount} lecciones
             </span>
           </div>
         )}
 
-        {status && <p className="mb-4 rounded bg-blue-50 px-3 py-2 text-sm text-blue-700">{status}</p>}
+        {status && (
+          <p className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {status}
+          </p>
+        )}
 
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">Lecciones de hoy — toca para agregar</p>
         <div className="mb-6 flex flex-wrap gap-2">
           {lessons.map((l) => {
             const prior = progressFor(l.id);
@@ -205,14 +216,21 @@ export default function ClassSessionPage() {
               ? "border-2 border-blue-500 bg-blue-50 text-blue-800 font-medium"
               : isCompleted
                 ? "border border-transparent bg-green-50 text-green-800"
-                : "border border-gray-200 bg-white text-gray-500";
+                : "border border-gray-200 bg-white text-gray-500 hover:border-gray-300";
             return (
-              <button key={l.id} onClick={() => toggleLesson(l)} className={`rounded px-3 py-1.5 text-xs ${chipClass}`}>
+              <button key={l.id} onClick={() => toggleLesson(l)} className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs transition-colors ${chipClass}`}>
+                {isCompleted && !isSelected && <Check className="h-3 w-3" aria-hidden="true" />}
                 {l.code}
               </button>
             );
           })}
         </div>
+
+        {selected.size === 0 && (
+          <p className="mb-6 rounded-xl border border-dashed border-gray-200 bg-white/60 px-4 py-6 text-center text-sm text-gray-400">
+            Selecciona una o varias lecciones arriba para empezar a capturar la clase.
+          </p>
+        )}
 
         <div className="space-y-4">
           {Array.from(selected).map((lessonId) => {
@@ -221,7 +239,7 @@ export default function ClassSessionPage() {
             if (!state) return null;
             return (
               <div key={lessonId} className="rounded-r-lg border-y border-r border-gray-200 border-l-4 border-l-blue-500 bg-white p-5">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="font-semibold">
                     {lesson.code} — {lesson.name}
                   </h2>
@@ -229,10 +247,11 @@ export default function ClassSessionPage() {
                     <button
                       type="button"
                       onClick={() => updateField(lessonId, "isRepeat", !state.isRepeat)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        state.isRepeat ? "bg-amber-100 text-amber-800" : "border border-gray-200 text-gray-400"
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        state.isRepeat ? "bg-amber-100 text-amber-800" : "border border-gray-200 text-gray-400 hover:border-gray-300"
                       }`}
                     >
+                      <RotateCcw className="h-3 w-3" aria-hidden="true" />
                       Repaso
                     </button>
                   )}
@@ -244,13 +263,15 @@ export default function ClassSessionPage() {
                     const rating = na ? "NA" : state.criteria[c.id];
                     const style = rating ? RATING_STYLES[rating] : null;
                     return (
-                      <div key={c.id} className="flex items-center gap-3 py-1">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${style?.dot ?? "bg-gray-200"}`} />
-                        <span className="flex-1 text-sm">{c.text}</span>
+                      <div key={c.id} className="flex flex-col gap-1.5 py-1.5 sm:flex-row sm:items-center sm:gap-3 sm:py-1">
+                        <div className="flex items-start gap-2 sm:flex-1 sm:items-center">
+                          <span className={`mt-1 h-2 w-2 shrink-0 rounded-full sm:mt-0 ${style?.dot ?? "bg-gray-200"}`} />
+                          <span className="text-sm">{c.text}</span>
+                        </div>
                         {na ? (
-                          <span className="text-xs text-gray-400">No aplica</span>
+                          <span className="pl-4 text-xs text-gray-400 sm:pl-0">No aplica</span>
                         ) : (
-                          <div className="flex gap-1">
+                          <div className="flex shrink-0 gap-1 pl-4 sm:pl-0">
                             {RATING_OPTIONS.map((opt) => {
                               const active = state.criteria[c.id] === opt.value;
                               const s = RATING_STYLES[opt.value];
@@ -322,17 +343,13 @@ export default function ClassSessionPage() {
         </div>
 
         {selected.size > 0 && (
-          <div className="sticky bottom-0 mt-6 flex gap-3 border-t bg-gray-50 py-4">
-            <button onClick={saveProgress} disabled={busy} className="rounded border px-4 py-2 text-sm font-medium disabled:opacity-50">
+          <div className="sticky bottom-0 mt-6 flex flex-col gap-2 border-t border-gray-200 bg-slate-50/95 py-4 backdrop-blur sm:flex-row sm:gap-3">
+            <Button variant="secondary" icon={Save} onClick={saveProgress} busy={busy} fullWidthOnMobile>
               Guardar avance
-            </button>
-            <button
-              onClick={closeAndSend}
-              disabled={busy}
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-blue-700"
-            >
+            </Button>
+            <Button variant="primary" icon={Send} onClick={closeAndSend} busy={busy} fullWidthOnMobile>
               Cerrar y enviar reporte
-            </button>
+            </Button>
           </div>
         )}
       </main>

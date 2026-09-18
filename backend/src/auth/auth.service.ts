@@ -13,7 +13,7 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { instructor: true },
+      include: { instructor: true, branch: true },
     });
     if (!user || !user.active) {
       throw new UnauthorizedException("Credenciales inválidas");
@@ -23,11 +23,20 @@ export class AuthService {
       throw new UnauthorizedException("Credenciales inválidas");
     }
 
+    // La sucursal del usuario es la fuente de verdad para delimitar qué ve
+    // (aislamiento entre sucursales); para instructores debe coincidir con la
+    // de su propio registro Instructor.
+    const branchId = user.branchId ?? user.instructor?.branchId;
+    if (!branchId) {
+      throw new UnauthorizedException("Este usuario no tiene una sucursal asignada");
+    }
+
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       instructorId: user.instructor?.id,
+      branchId,
     };
 
     return {
@@ -37,6 +46,8 @@ export class AuthService {
         email: user.email,
         role: user.role,
         instructorId: user.instructor?.id ?? null,
+        branchId,
+        branchName: user.branch?.name ?? null,
       },
     };
   }

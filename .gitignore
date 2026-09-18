@@ -3,10 +3,24 @@ dist/
 .next/
 .turbo/
 build/
+coverage/
 *.log
+npm-debug.log*
+
+# Variables de entorno — nunca subir secretos reales, solo los .env.example
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.*
+!.env.example
+
 .DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
 backend/generated/
 *.tsbuildinfo

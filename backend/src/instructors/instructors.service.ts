@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuthenticatedUser } from "../common/types";
 import { CreateInstructorDto } from "./dto/create-instructor.dto";
 import { UpdateInstructorDto } from "./dto/update-instructor.dto";
 
@@ -8,45 +9,58 @@ import { UpdateInstructorDto } from "./dto/update-instructor.dto";
 export class InstructorsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateInstructorDto) {
+  async create(dto: CreateInstructorDto, user: AuthenticatedUser) {
     if (dto.password) {
       const passwordHash = await bcrypt.hash(dto.password, 10);
-      const user = await this.prisma.user.create({
-        data: { email: dto.email, passwordHash, role: "INSTRUCTOR" },
+      const authUser = await this.prisma.user.create({
+        data: { email: dto.email, passwordHash, role: "INSTRUCTOR", branchId: user.branchId },
       });
       return this.prisma.instructor.create({
         data: {
+          branchId: user.branchId,
           firstName: dto.firstName,
           lastName: dto.lastName,
           email: dto.email,
-          userId: user.id,
+          userId: authUser.id,
         },
       });
     }
     return this.prisma.instructor.create({
-      data: { firstName: dto.firstName, lastName: dto.lastName, email: dto.email },
+      data: { branchId: user.branchId, firstName: dto.firstName, lastName: dto.lastName, email: dto.email },
     });
   }
 
-  // Devuelve todos (activos e inactivos) para que el supervisor pueda
-  // reactivarlos; el resto de la app filtra por "active" donde corresponde.
-  findAll() {
-    return this.prisma.instructor.findMany({ orderBy: [{ active: "desc" }, { firstName: "asc" }] });
+  // Aislamiento entre sucursales — devuelve todos (activos e inactivos) de la
+  // sucursal del usuario, para que el supervisor pueda reactivarlos.
+  findAll(user: AuthenticatedUser) {
+    return this.prisma.instructor.findMany({
+      where: { branchId: user.branchId },
+      orderBy: [{ active: "desc" }, { firstName: "asc" }],
+    });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: AuthenticatedUser) {
     const instructor = await this.prisma.instructor.findUnique({ where: { id } });
     if (!instructor) throw new NotFoundException("Instructor no encontrado");
+    if (instructor.branchId !== user.branchId) {
+      throw new ForbiddenException("Este instructor no pertenece a tu sucursal");
+    }
     return instructor;
   }
 
-  async update(id: string, dto: UpdateInstructorDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateInstructorDto, user: AuthenticatedUser) {
+    await this.findOne(id, user);
     return this.prisma.instructor.update({ where: { id }, data: dto });
   }
 
-  // Alumnos activos asignados a este instructor (dashboard, sección 8).
-  async findAssignedActiveEnrollments(instructorId: string) {
+  // Alumnos activos asignados a este instructor (dashboard, sección 8). Un
+  // instructor solo puede ver los suyos; el supervisor puede ver los de
+  // cualquier instructor de su misma sucursal.
+  async findAssignedActiveEnrollments(instructorId: string, user: AuthenticatedUser) {
+    const instructor = await this.findOne(instructorId, user);
+    if (user.role === "INSTRUCTOR" && user.instructorId !== instructor.id) {
+      throw new ForbiddenException("No puedes ver los alumnos de otro instructor");
+    }
     return this.prisma.enrollment.findMany({
       where: { instructorId, status: "ACTIVO" },
       include: { student: true, courseType: true },

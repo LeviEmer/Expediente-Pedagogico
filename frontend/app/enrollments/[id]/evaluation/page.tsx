@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { CheckCircle2, ClipboardCheck, FlagTriangleRight, Save } from "lucide-react";
 import { api, GeneralEvaluationDimension } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
+import { Button, Card, PageHeader } from "@/components/ui";
 
 export default function GeneralEvaluationPage() {
   const { id: enrollmentId } = useParams<{ id: string }>();
@@ -56,14 +58,26 @@ export default function GeneralEvaluationPage() {
     <div>
       <NavBar />
       <main className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="mb-4 text-lg font-semibold">Evaluación general</h1>
+        <PageHeader
+          eyebrow="Cierre de curso"
+          title="Evaluación general"
+          subtitle="Califica cada dimensión y agrega observaciones antes de finalizar el curso."
+        />
 
-        {status && <p className="mb-4 rounded bg-blue-50 px-3 py-2 text-sm text-blue-700">{status}</p>}
+        {status && (
+          <p className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {status}
+          </p>
+        )}
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {dimensions.map((dim) => (
-            <div key={dim.id} className="rounded-r-lg border-y border-r border-gray-200 border-l-4 border-l-blue-500 bg-white p-4">
-              <p className="mb-2 font-medium">{dim.name}</p>
+            <Card key={dim.id} accent="blue">
+              <p className="mb-2 flex items-center gap-2 font-medium text-gray-900">
+                <ClipboardCheck className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                {dim.name}
+              </p>
               <div className="mb-2 flex gap-2">
                 {dim.levels.map((lvl) => {
                   const active = scores[dim.id] === lvl.level;
@@ -72,8 +86,8 @@ export default function GeneralEvaluationPage() {
                       key={lvl.level}
                       type="button"
                       onClick={() => setScores((s) => ({ ...s, [dim.id]: lvl.level }))}
-                      className={`h-8 flex-1 rounded text-xs font-medium ${
-                        active ? "bg-blue-600 text-white" : "border border-gray-200 text-gray-400 hover:bg-gray-50"
+                      className={`h-9 flex-1 rounded-lg text-xs font-medium transition-colors ${
+                        active ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20" : "border border-gray-200 text-gray-400 hover:bg-gray-50"
                       }`}
                     >
                       {lvl.level}
@@ -91,31 +105,34 @@ export default function GeneralEvaluationPage() {
                   );
                 })}
               </ul>
-            </div>
+            </Card>
           ))}
 
-          <div>
-            <label className="text-sm font-medium">Observaciones personales</label>
+          <Card>
+            <label className="text-sm font-medium text-gray-700">Observaciones personales</label>
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
               rows={4}
-              className="mt-1 w-full rounded border px-3 py-2 text-sm"
+              placeholder="Notas libres sobre el desempeño general del alumno..."
+              className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
-          </div>
+          </Card>
 
-          <div className="flex gap-3">
-            <button onClick={saveEvaluation} disabled={busy} className="rounded border px-4 py-2 text-sm font-medium disabled:opacity-50">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+            <Button variant="secondary" icon={Save} onClick={saveEvaluation} busy={busy} fullWidthOnMobile>
               Guardar evaluación
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="warning"
+              icon={FlagTriangleRight}
               onClick={finishCourse}
-              disabled={busy}
-              className="rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              busy={busy}
+              fullWidthOnMobile
               title="Esta acción finaliza el curso y no se puede deshacer"
             >
-              Finalizar curso y enviar reporte general
-            </button>
+              Finalizar curso y enviar reporte
+            </Button>
           </div>
         </div>
       </main>

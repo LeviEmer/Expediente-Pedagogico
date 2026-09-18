@@ -17,21 +17,22 @@ export class EnrollmentsController {
 
   @Post()
   @Roles("SUPERVISOR", "INSTRUCTOR")
-  create(@Body() dto: CreateEnrollmentDto) {
-    return this.enrollmentsService.create(dto);
+  create(@Body() dto: CreateEnrollmentDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.enrollmentsService.create(dto, user);
   }
 
   @Get()
   @Roles("SUPERVISOR")
-  findAll() {
-    return this.enrollmentsService.findAll();
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.enrollmentsService.findAll(user);
   }
 
   // Buscar alumno por nombre — para que un instructor distinto al asignado
   // pueda encontrarlo y, si el alumno pasó a su cargo, asignárselo (claim-instructor).
+  // Limitado a la sucursal del usuario (aislamiento entre sucursales).
   @Get("search")
-  search(@Query("q") q: string) {
-    return this.enrollmentsService.search(q);
+  search(@Query("q") q: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.enrollmentsService.search(q, user);
   }
 
   @Get(":id")
