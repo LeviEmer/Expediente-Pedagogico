@@ -25,7 +25,11 @@ pnpm prisma:migrate   # crea las tablas en la base de datos
 pnpm prisma:seed      # carga el currículo completo (L00-L15 + evaluación general) y un usuario supervisor
 ```
 
-El seed crea un usuario supervisor (`supervisor@escuela.com` / `admin123` por defecto, configurable con `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` en `backend/.env` — nombres de variable conservados por compatibilidad). Para crear instructores con acceso, usa el panel de supervisor una vez logueado (o `POST /api/instructors` con `password`).
+El seed crea dos sucursales (Sucursal San Salvador y Sucursal Sonsonate) y un usuario supervisor por sucursal (`supervisor.sucursal-san-salvador@escuela.com` / `supervisor.sucursal-sonsonate@escuela.com`, contraseña `admin123`, ver la consola del seed para el detalle). Para crear instructores con acceso, usa el panel de supervisor una vez logueado (o `POST /api/instructors` con `password`) — quedan asignados a la sucursal del supervisor que los crea.
+
+## Despliegue a producción
+
+Ver [DEPLOYMENT.md](DEPLOYMENT.md) para la guía paso a paso (Vercel + Render + Supabase, sin costo mensual).
 
 El sistema tiene solo dos roles: **instructor** (captura sus propias clases) y **supervisor** (ve y gestiona todo: alumnos, instructores, matrículas e historial completo).
 

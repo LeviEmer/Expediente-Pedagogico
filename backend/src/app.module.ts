@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AppController } from "./app.controller";
 import { PrismaModule } from "./prisma/prisma.module";
 import { MailModule } from "./mail/mail.module";
 import { AuthModule } from "./auth/auth.module";
@@ -21,5 +22,6 @@ import { ClassSessionsModule } from "./class-sessions/class-sessions.module";
     EnrollmentsModule,
     ClassSessionsModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

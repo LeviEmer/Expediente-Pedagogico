@@ -4,7 +4,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useRouter } from "next/navigation";
 import { api, Role } from "./api";
 
-type AuthUser = { id: string; email: string; role: Role; instructorId: string | null };
+type AuthUser = {
+  id: string;
+  email: string;
+  role: Role;
+  instructorId: string | null;
+  branchId: string;
+  branchName: string | null;
+};
 
 type AuthContextValue = {
   user: AuthUser | null;

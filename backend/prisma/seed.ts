@@ -528,23 +528,44 @@ async function main() {
     }
   }
 
-  console.log("Seeding usuario supervisor de prueba...");
-  // Nombres de variable de entorno conservados (SEED_ADMIN_*) por compatibilidad con .env existentes.
-  const supervisorEmail = process.env.SEED_ADMIN_EMAIL ?? "supervisor@escuela.com";
-  const supervisorPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
-  const existingSupervisor = await prisma.user.findUnique({ where: { email: supervisorEmail } });
-  if (!existingSupervisor) {
-    await prisma.user.create({
-      data: {
-        email: supervisorEmail,
-        passwordHash: await bcrypt.hash(supervisorPassword, 10),
-        role: "SUPERVISOR",
-      },
-    });
-    console.log(`  Supervisor creado: ${supervisorEmail} / ${supervisorPassword} (cambiar en producción)`);
+  console.log("Seeding sucursales...");
+  const branchNames = ["Sucursal San Salvador", "Sucursal Sonsonate"];
+  const credentials: { branch: string; email: string; password: string }[] = [];
+
+  for (const branchName of branchNames) {
+    let branch = await prisma.branch.findFirst({ where: { name: branchName } });
+    if (!branch) {
+      branch = await prisma.branch.create({ data: { name: branchName, active: true } });
+    }
+
+    const slug = branchName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    const email = `supervisor.${slug}@escuela.com`;
+    const password = "admin123";
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (!existing) {
+      await prisma.user.create({
+        data: {
+          email,
+          passwordHash: await bcrypt.hash(password, 10),
+          role: "SUPERVISOR",
+          branchId: branch.id,
+        },
+      });
+    }
+    credentials.push({ branch: branchName, email, password });
   }
 
   console.log("Seed completado.");
+  console.log("Credenciales de prueba (cambiar en producción):");
+  for (const c of credentials) {
+    console.log(`  ${c.branch}: ${c.email} / ${c.password}`);
+  }
 }
 
 main()

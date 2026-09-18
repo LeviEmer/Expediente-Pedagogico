@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: expediente-pedagogico-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter backend prisma:generate && pnpm --filter backend exec prisma migrate deploy && pnpm --filter backend build
+    startCommand: pnpm --filter backend start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_BCC_ADMIN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GraduationCap, LayoutDashboard, LogOut, UserPlus, Users } from "lucide-react";
+import { Building2, GraduationCap, LayoutDashboard, LogOut, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "@/components/ui";
 
@@ -49,6 +49,12 @@ export function NavBar() {
             <NavLink href="/supervisor" icon={LayoutDashboard} active={pathname === "/supervisor"}>
               Panel supervisor
             </NavLink>
+          )}
+          {user?.branchName && (
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-gray-100 px-2.5 py-1.5 text-sm font-medium text-gray-600">
+              <Building2 className="h-4 w-4" aria-hidden="true" />
+              {user.branchName}
+            </span>
           )}
           {user && (
             <button
