@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Check, CheckCircle2, RotateCcw, Save, Send, Sparkles } from "lucide-react";
+import { Check, CheckCircle2, ClipboardList, RotateCcw, Save, Send, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api, CriterionRating, Enrollment, EnrollmentLessonProgress, Lesson } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
@@ -56,6 +56,22 @@ export default function ClassSessionPage() {
       setSessionId(session.id);
     })();
   }, [enrollmentId, user]);
+
+  // Datos generales que no siempre se saben al matricular (el recorrido de
+  // exámenes y la localización pueden pasar cualquier día del curso) — se
+  // dejan visibles aquí para marcarlos el día que realmente sucedan, no solo
+  // al crear la matrícula.
+  async function toggleGeneralData(field: "recorridoExamenes" | "localizacionHipotecarioVmtPlazaJardin") {
+    if (!enrollment) return;
+    const value = !enrollment[field];
+    setEnrollment({ ...enrollment, [field]: value });
+    try {
+      await api.patch(`/enrollments/${enrollmentId}`, { [field]: value });
+    } catch (err) {
+      setEnrollment((prev) => (prev ? { ...prev, [field]: !value } : prev));
+      setStatus(err instanceof Error ? err.message : "Error al actualizar datos generales");
+    }
+  }
 
   function progressFor(lessonId: string) {
     return progress.find((p) => p.lessonId === lessonId);
@@ -183,6 +199,35 @@ export default function ClassSessionPage() {
             {enrollment.student.firstName} {enrollment.student.lastName} · {enrollment.courseType?.name} ·{" "}
             {enrollment.transmission}
           </p>
+        )}
+
+        {enrollment && (!enrollment.recorridoExamenes || !enrollment.localizacionHipotecarioVmtPlazaJardin) && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-800">
+              <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+              Datos generales pendientes — márcalos el día que sucedan
+            </p>
+            <div className="flex flex-col gap-1.5">
+              <label className="flex items-center gap-2 text-sm text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={!!enrollment.recorridoExamenes}
+                  onChange={() => toggleGeneralData("recorridoExamenes")}
+                  className="h-4 w-4 rounded border-amber-300 text-blue-600 focus:ring-blue-400"
+                />
+                Recorrido de exámenes
+              </label>
+              <label className="flex items-center gap-2 text-sm text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={!!enrollment.localizacionHipotecarioVmtPlazaJardin}
+                  onChange={() => toggleGeneralData("localizacionHipotecarioVmtPlazaJardin")}
+                  className="h-4 w-4 rounded border-amber-300 text-blue-600 focus:ring-blue-400"
+                />
+                Localización (Hipotecario / VMT / Plaza Jardín)
+              </label>
+            </div>
+          </div>
         )}
 
         {totalCount > 0 && (

@@ -94,6 +94,8 @@ export type Enrollment = {
   endDate: string | null;
   status: "ACTIVO" | "FINALIZADO" | "CANCELADO";
   finalReportSentAt?: string | null;
+  recorridoExamenes?: boolean;
+  localizacionHipotecarioVmtPlazaJardin?: boolean;
   student?: Student;
   courseType?: CourseType;
   instructor?: Instructor | null;
