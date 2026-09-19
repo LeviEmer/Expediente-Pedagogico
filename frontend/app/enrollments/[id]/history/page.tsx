@@ -174,7 +174,7 @@ export default function EnrollmentHistoryPage() {
             </p>
             <div className="space-y-3">
               {progress.map((p) => (
-                <Card key={p.id} className="p-4" accent={p.completedOn ? "green" : "none"}>
+                <Card key={p.id} className="p-4" accent={p.completedOn ? "green" : p.lastUpdatedOn ? "amber" : "none"}>
                   <div className="flex flex-wrap items-center justify-between gap-1">
                     <h3 className="font-medium">
                       {p.lesson.code} — {p.lesson.name}
@@ -183,6 +183,11 @@ export default function EnrollmentHistoryPage() {
                       <Badge tone="green">
                         <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                         Completada · {new Date(p.completedOn).toLocaleDateString("es-CR")}
+                      </Badge>
+                    ) : p.lastUpdatedOn ? (
+                      <Badge tone="amber">
+                        <RotateCcw className="h-3 w-3" aria-hidden="true" />
+                        En repaso
                       </Badge>
                     ) : (
                       <Badge tone="gray">Pendiente</Badge>
