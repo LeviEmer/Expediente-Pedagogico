@@ -194,7 +194,18 @@ export class EnrollmentsService {
     const lessons = await this.prisma.enrollmentLesson.findMany({
       where: { enrollmentId },
       include: {
-        lesson: true,
+        // La lección completa (con sus criterios y niveles de rúbrica) —
+        // la pantalla de "clase de hoy" la necesita para poder capturar,
+        // no solo para mostrar el nombre.
+        lesson: {
+          include: {
+            criteria: { orderBy: { orderIndex: "asc" } },
+            rubricDimensions: {
+              orderBy: { orderIndex: "asc" },
+              include: { levels: { orderBy: { level: "asc" } } },
+            },
+          },
+        },
         criteriaResults: { include: { criterion: true } },
         rubricScores: { include: { dimension: true } },
       },
