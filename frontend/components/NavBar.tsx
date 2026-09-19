@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { Building2, ClipboardList, LayoutDashboard, LogOut, LucideIcon, UserCog, UserPlus, Users } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, Building2, ClipboardList, LayoutDashboard, LogOut, LucideIcon, UserCog, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "@/components/ui";
 
@@ -59,6 +59,24 @@ function Brand({ light }: { light?: boolean }) {
   );
 }
 
+function BackButton({ light }: { light?: boolean }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  if (pathname === "/login" || pathname === "/") return null;
+  return (
+    <button
+      onClick={() => router.back()}
+      className={cx(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
+        light ? "text-blue-50 hover:bg-white/10" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+      )}
+    >
+      <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
+      Volver
+    </button>
+  );
+}
+
 function BranchBadge({ light }: { light?: boolean }) {
   const { user } = useAuth();
   if (!user) return null;
@@ -104,6 +122,7 @@ function TopBar() {
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <Brand />
         <nav className="flex flex-wrap items-center gap-1 text-sm">
+          <BackButton />
           {items.map((item) => (
             <TopNavLink key={item.href + item.label} href={item.href} icon={item.icon} active={pathname === item.href}>
               {item.label}
@@ -151,6 +170,7 @@ function Sidebar() {
     <aside className={cx("fixed inset-y-0 left-0 z-10 hidden flex-col gap-6 bg-blue-600 p-4 md:flex", SIDEBAR_WIDTH_CLASS)}>
       <Brand light />
       <nav className="flex flex-1 flex-col gap-1">
+        <BackButton light />
         {items.map((item) => (
           <SideNavLink key={item.href + item.label} href={item.href} icon={item.icon} active={pathname === item.href}>
             {item.label}
