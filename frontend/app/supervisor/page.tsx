@@ -308,7 +308,7 @@ export default function SupervisorPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                         <span
                           className={cx(
                             "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
@@ -356,7 +356,7 @@ export default function SupervisorPage() {
             <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-100 text-sm">
               {filteredEnrollments.map((e) => (
                 <li key={e.id} className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
                       {initials(e.student?.firstName, e.student?.lastName)}
                     </span>
@@ -440,7 +440,7 @@ export default function SupervisorPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
                           {initials(s.firstName, s.lastName)}
                         </span>
