@@ -28,6 +28,7 @@ export default function MatriculasPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [showFinished, setShowFinished] = useState(false);
 
   function reload() {
     api.get<Enrollment[]>("/enrollments").then(setEnrollments);
@@ -36,12 +37,16 @@ export default function MatriculasPage() {
 
   useEffect(reload, []);
 
+  const finishedCount = enrollments.filter((e) => e.status !== "ACTIVO").length;
+
   const filteredEnrollments = useMemo(
     () =>
-      enrollments.filter((e) =>
-        matches(query, e.student?.firstName, e.student?.lastName, e.courseType?.name, e.instructor?.firstName, e.instructor?.lastName),
-      ),
-    [enrollments, query],
+      enrollments
+        .filter((e) => showFinished || e.status === "ACTIVO")
+        .filter((e) =>
+          matches(query, e.student?.firstName, e.student?.lastName, e.courseType?.name, e.instructor?.firstName, e.instructor?.lastName),
+        ),
+    [enrollments, query, showFinished],
   );
 
   async function reassignInstructor(enrollmentId: string, instructorId: string) {
@@ -83,9 +88,22 @@ export default function MatriculasPage() {
         )}
 
         <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="relative mb-3 max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-            <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por alumno, curso o instructor..." className="pl-9" />
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div className="relative max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+              <TextField value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por alumno, curso o instructor..." className="pl-9" />
+            </div>
+            {finishedCount > 0 && (
+              <label className="flex items-center gap-1.5 text-xs text-gray-500">
+                <input
+                  type="checkbox"
+                  checked={showFinished}
+                  onChange={(e) => setShowFinished(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                />
+                Mostrar {finishedCount} finalizada{finishedCount === 1 ? "" : "s"}/cancelada{finishedCount === 1 ? "" : "s"}
+              </label>
+            )}
           </div>
 
           {filteredEnrollments.length === 0 ? (

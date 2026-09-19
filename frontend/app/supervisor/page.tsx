@@ -68,6 +68,7 @@ export default function SupervisorPage() {
 
   const [instructorQuery, setInstructorQuery] = useState("");
   const [studentQuery, setStudentQuery] = useState("");
+  const [showFinishedStudents, setShowFinishedStudents] = useState(false);
 
   const [editingInstructorId, setEditingInstructorId] = useState<string | null>(null);
   const [instructorEdit, setInstructorEdit] = useState({ firstName: "", lastName: "", email: "" });
@@ -88,10 +89,24 @@ export default function SupervisorPage() {
     () => instructors.filter((i) => matches(instructorQuery, i.firstName, i.lastName, i.email)),
     [instructors, instructorQuery],
   );
+  // Alumnos con al menos una matrícula ACTIVA — un alumno cuyas matrículas
+  // están todas FINALIZADA/CANCELADA ya no necesita "estorbar" la lista del
+  // día a día (su historial sigue disponible desde Matrículas).
+  const studentsWithActiveEnrollment = useMemo(() => {
+    const ids = new Set(enrollments.filter((e) => e.status === "ACTIVO").map((e) => e.studentId));
+    return ids;
+  }, [enrollments]);
+
   const filteredStudents = useMemo(
-    () => students.filter((s) => matches(studentQuery, s.firstName, s.lastName, s.email)),
-    [students, studentQuery],
+    () =>
+      students
+        .filter((s) => showFinishedStudents || studentsWithActiveEnrollment.has(s.id) || !enrollments.some((e) => e.studentId === s.id))
+        .filter((s) => matches(studentQuery, s.firstName, s.lastName, s.email)),
+    [students, studentQuery, showFinishedStudents, studentsWithActiveEnrollment, enrollments],
   );
+  const hiddenFinishedCount = students.length - students.filter(
+    (s) => studentsWithActiveEnrollment.has(s.id) || !enrollments.some((e) => e.studentId === s.id),
+  ).length;
   const activeEnrollmentsCount = enrollments.filter((e) => e.status === "ACTIVO").length;
 
   async function createInstructor(e: React.FormEvent) {
@@ -329,7 +344,20 @@ export default function SupervisorPage() {
             <Users className="h-4 w-4 text-blue-600" aria-hidden="true" />
             Alumnos
           </h2>
-          <SearchInput value={studentQuery} onChange={setStudentQuery} placeholder="Buscar alumno..." />
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <SearchInput value={studentQuery} onChange={setStudentQuery} placeholder="Buscar alumno..." />
+            {hiddenFinishedCount > 0 && (
+              <label className="mb-3 flex items-center gap-1.5 text-xs text-gray-500">
+                <input
+                  type="checkbox"
+                  checked={showFinishedStudents}
+                  onChange={(e) => setShowFinishedStudents(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                />
+                Mostrar {hiddenFinishedCount} alumno{hiddenFinishedCount === 1 ? "" : "s"} sin matrícula activa
+              </label>
+            )}
+          </div>
 
           {filteredStudents.length === 0 ? (
             <EmptyState icon={Users} title="No hay alumnos todavía" />
