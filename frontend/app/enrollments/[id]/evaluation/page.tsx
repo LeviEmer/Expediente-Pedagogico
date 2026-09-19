@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardCheck, FlagTriangleRight, Save } from "lucide-react";
 import { api, GeneralEvaluationDimension } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Button, Card, ConfirmDialog, PageHeader } from "@/components/ui";
+import { BackLink, Button, Card, ConfirmDialog, PageHeader } from "@/components/ui";
 
 export default function GeneralEvaluationPage() {
   const { id: enrollmentId } = useParams<{ id: string }>();
@@ -55,6 +55,7 @@ export default function GeneralEvaluationPage() {
     <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-2xl px-4 py-8">
+        <BackLink />
         <PageHeader
           eyebrow="Cierre de curso"
           title="Evaluación general"

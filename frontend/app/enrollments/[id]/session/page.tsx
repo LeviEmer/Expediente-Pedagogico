@@ -6,7 +6,7 @@ import { Check, CheckCircle2, RotateCcw, Save, Send, Sparkles } from "lucide-rea
 import { useAuth } from "@/lib/auth-context";
 import { api, CriterionRating, Enrollment, EnrollmentLessonProgress, Lesson } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Button, ConfirmDialog } from "@/components/ui";
+import { BackLink, Button, ConfirmDialog } from "@/components/ui";
 
 type LessonFormState = {
   criteria: Record<string, CriterionRating>;
@@ -173,6 +173,7 @@ export default function ClassSessionPage() {
     <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-8">
+        <BackLink />
         <div className="mb-1 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-blue-600" aria-hidden="true" />
           <h1 className="text-xl font-semibold text-gray-900">Clase de hoy</h1>

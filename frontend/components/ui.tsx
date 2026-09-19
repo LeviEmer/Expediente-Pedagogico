@@ -1,8 +1,27 @@
 import { ButtonHTMLAttributes, ReactNode } from "react";
-import { LucideIcon, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, LucideIcon, Loader2 } from "lucide-react";
 
 export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
+}
+
+// ---------- Volver ----------
+
+// Botón de regreso dentro del contenido de la página (no en el nav fijo) —
+// solo para pantallas a las que se "entra" (formularios, detalle de una
+// matrícula, etc.), no en las páginas de inicio de cada rol.
+export function BackLink({ label = "Volver" }: { label?: string }) {
+  const router = useRouter();
+  return (
+    <button
+      onClick={() => router.back()}
+      className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+    >
+      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+      {label}
+    </button>
+  );
 }
 
 // ---------- Botones ----------

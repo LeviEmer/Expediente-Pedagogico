@@ -6,7 +6,7 @@ import { AlertCircle, Car, ClipboardList, GraduationCap, UserPlus } from "lucide
 import { useAuth } from "@/lib/auth-context";
 import { api, CourseType, Instructor, Student } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Button, PageHeader } from "@/components/ui";
+import { BackLink, Button, PageHeader } from "@/components/ui";
 
 const inputClass =
   "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
@@ -92,6 +92,7 @@ export default function NewEnrollmentPage() {
     <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-2xl px-4 py-8">
+        <BackLink />
         <PageHeader eyebrow="Nueva matrícula" title="Matricular un alumno" subtitle="Completa los datos para empezar a darle clases." />
 
         <form onSubmit={onSubmit} className="space-y-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">

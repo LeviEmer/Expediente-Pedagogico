@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, KeyRound, Power, Search, UserPlus, Users } from "lucide-react";
 import { api, AdminUser, Branch } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, Button, EmptyState, PageHeader, TextField } from "@/components/ui";
+import { BackLink, Badge, Button, EmptyState, PageHeader, TextField } from "@/components/ui";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrador",
@@ -118,6 +118,7 @@ export default function AdminUsersPage() {
     <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
+        <BackLink />
         <PageHeader
           eyebrow="Administración"
           title="Usuarios"

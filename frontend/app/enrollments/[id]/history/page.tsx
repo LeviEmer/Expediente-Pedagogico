@@ -7,7 +7,7 @@ import { CalendarDays, CheckCircle2, ClipboardCheck, Mail, MailWarning, PlayCirc
 import { useAuth } from "@/lib/auth-context";
 import { api, ClassSessionSummary, CriterionRating, Enrollment, EnrollmentLessonProgress } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, Card, ConfirmDialog, cx, EmptyState, LinkButton, LoadingRow, PageHeader } from "@/components/ui";
+import { BackLink, Badge, Card, ConfirmDialog, cx, EmptyState, LinkButton, LoadingRow, PageHeader } from "@/components/ui";
 
 const RATING_LABEL: Record<CriterionRating, string> = { NO: "No", MEDIO: "Medio", SI: "Sí", NA: "No aplica" };
 const RATING_DOT: Record<CriterionRating, string> = {
@@ -88,6 +88,7 @@ export default function EnrollmentHistoryPage() {
     <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-8">
+        <BackLink />
         <PageHeader
           title="Historial del alumno"
           subtitle={

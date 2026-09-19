@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ClipboardList, Search, UserPlus } from "lucide-react";
 import { api, Enrollment, Instructor } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, EmptyState, PageHeader, TextField } from "@/components/ui";
+import { BackLink, Badge, EmptyState, PageHeader, TextField } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function matches(query: string, ...fields: (string | undefined | null)[]) {
@@ -60,6 +60,7 @@ export default function MatriculasPage() {
     <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-8">
+        <BackLink />
         <PageHeader
           eyebrow={isReadOnly ? "Solo lectura" : "Panel de supervisor"}
           title="Matrículas"
