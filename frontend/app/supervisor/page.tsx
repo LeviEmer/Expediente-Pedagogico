@@ -68,7 +68,6 @@ export default function SupervisorPage() {
 
   const [instructorQuery, setInstructorQuery] = useState("");
   const [studentQuery, setStudentQuery] = useState("");
-  const [enrollmentQuery, setEnrollmentQuery] = useState("");
 
   const [editingInstructorId, setEditingInstructorId] = useState<string | null>(null);
   const [instructorEdit, setInstructorEdit] = useState({ firstName: "", lastName: "", email: "" });
@@ -93,14 +92,6 @@ export default function SupervisorPage() {
     () => students.filter((s) => matches(studentQuery, s.firstName, s.lastName, s.email)),
     [students, studentQuery],
   );
-  const filteredEnrollments = useMemo(
-    () =>
-      enrollments.filter((e) =>
-        matches(enrollmentQuery, e.student?.firstName, e.student?.lastName, e.courseType?.name, e.instructor?.firstName, e.instructor?.lastName),
-      ),
-    [enrollments, enrollmentQuery],
-  );
-
   const activeEnrollmentsCount = enrollments.filter((e) => e.status === "ACTIVO").length;
 
   async function createInstructor(e: React.FormEvent) {
@@ -168,18 +159,6 @@ export default function SupervisorPage() {
     }
   }
 
-  async function reassignInstructor(enrollmentId: string, instructorId: string) {
-    if (!instructorId) return;
-    setStatus(null);
-    try {
-      await api.patch(`/enrollments/${enrollmentId}/claim-instructor`, { instructorId });
-      setStatus("Instructor reasignado.");
-      reload();
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Error al reasignar instructor");
-    }
-  }
-
   const editInputClass = "rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
 
   return (
@@ -198,7 +177,9 @@ export default function SupervisorPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard icon={Users} label="Alumnos" value={students.length} />
           <StatCard icon={UserCog} label="Instructores" value={instructors.filter((i) => i.active !== false).length} />
-          <StatCard icon={ClipboardList} label="Matrículas activas" value={activeEnrollmentsCount} />
+          <Link href="/supervisor/matriculas" className="rounded-xl transition-shadow hover:shadow-md">
+            <StatCard icon={ClipboardList} label="Matrículas activas" value={activeEnrollmentsCount} />
+          </Link>
           <StatCard icon={Car} label="Tipos de curso" value={courseTypes.length} />
         </div>
 
@@ -337,58 +318,6 @@ export default function SupervisorPage() {
                       )}
                     </div>
                   )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 flex items-center gap-1.5 font-medium text-gray-800">
-            <ClipboardList className="h-4 w-4 text-blue-600" aria-hidden="true" />
-            Matrículas
-          </h2>
-          <SearchInput value={enrollmentQuery} onChange={setEnrollmentQuery} placeholder="Buscar por alumno, curso o instructor..." />
-
-          {filteredEnrollments.length === 0 ? (
-            <EmptyState icon={ClipboardList} title="No hay matrículas que coincidan" />
-          ) : (
-            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-100 text-sm">
-              {filteredEnrollments.map((e) => (
-                <li key={e.id} className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700">
-                      {initials(e.student?.firstName, e.student?.lastName)}
-                    </span>
-                    <span className="break-words">
-                      {e.student?.firstName} {e.student?.lastName} — {e.courseType?.name} · {e.transmission}
-                    </span>
-                    <Badge tone={e.status === "ACTIVO" ? "green" : e.status === "FINALIZADO" ? "blue" : "gray"}>{e.status}</Badge>
-                    {showBranchColumn && e.branch && <Badge tone="gray">{e.branch.name}</Badge>}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {!isReadOnly && (
-                      <select
-                        value={e.instructor?.id ?? ""}
-                        onChange={(ev) => reassignInstructor(e.id, ev.target.value)}
-                        className="rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
-                      >
-                        <option value="" disabled>
-                          Sin instructor
-                        </option>
-                        {instructors
-                          .filter((i) => i.active !== false && (!e.branchId || i.branchId === e.branchId))
-                          .map((i) => (
-                            <option key={i.id} value={i.id}>
-                              {i.firstName} {i.lastName}
-                            </option>
-                          ))}
-                      </select>
-                    )}
-                    <Link href={`/enrollments/${e.id}/history`} className="text-xs font-medium text-blue-700 hover:underline">
-                      Ver historial y clases
-                    </Link>
-                  </div>
                 </li>
               ))}
             </ul>

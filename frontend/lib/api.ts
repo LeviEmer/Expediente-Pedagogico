@@ -48,8 +48,10 @@ export type Role = "ADMIN" | "SUPERVISOR" | "GENERAL_SUPERVISOR" | "INSTRUCTOR";
 
 export type Branch = { id: string; name: string; active: boolean };
 
-// Cuentas de supervisor / supervisor general, gestionadas por el ADMIN
-// (los instructores se gestionan aparte, bajo /instructors).
+// Todas las cuentas con acceso (login), gestionadas por el ADMIN: admin,
+// supervisores, supervisor general e instructores que ya tienen usuario.
+// El registro de negocio del instructor (nombre, sucursal) se sigue
+// creando/editando aparte, bajo /instructors.
 export type AdminUser = {
   id: string;
   email: string;
@@ -57,6 +59,7 @@ export type AdminUser = {
   active: boolean;
   branchId: string | null;
   branch?: Branch | null;
+  instructor?: { id: string; firstName: string; lastName: string } | null;
 };
 
 export type CourseType = { id: string; name: string; active: boolean };

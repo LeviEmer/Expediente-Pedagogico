@@ -4,18 +4,18 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 
-// Gestión de cuentas de supervisor / supervisor general — exclusivo del
-// ADMIN. Los instructores se gestionan en instructors.service.ts.
+// Vista unificada de TODAS las cuentas con acceso (login) — exclusivo del
+// ADMIN: administradores, supervisores, supervisor general e instructores
+// que ya tienen usuario creado. Crear/editar el registro de negocio del
+// instructor (nombre, sucursal) sigue en instructors.service.ts; aquí solo
+// se administra la cuenta (contraseña, bloqueo de acceso).
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  // Solo supervisores, supervisor general y el propio admin — no expone
-  // usuarios INSTRUCTOR aquí (esos viven bajo /instructors).
   findAll() {
     return this.prisma.user.findMany({
-      where: { role: { in: ["ADMIN", "SUPERVISOR", "GENERAL_SUPERVISOR"] } },
-      include: { branch: true },
+      include: { branch: true, instructor: true },
       orderBy: [{ role: "asc" }, { email: "asc" }],
     });
   }

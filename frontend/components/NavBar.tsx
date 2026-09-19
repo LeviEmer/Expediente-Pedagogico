@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, LogOut, LucideIcon, Shield, UserPlus, Users } from "lucide-react";
+import { Building2, ClipboardList, LayoutDashboard, LogOut, LucideIcon, UserCog, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "@/components/ui";
 
@@ -27,10 +27,13 @@ function useNavItems(): NavItem[] {
       icon: LayoutDashboard,
       label: user.role === "GENERAL_SUPERVISOR" ? "Panel general (solo lectura)" : "Panel supervisor",
     });
+    items.push({ href: "/supervisor/matriculas", icon: ClipboardList, label: "Matrículas" });
   }
   if (user?.role === "ADMIN") {
-    items.push({ href: "/admin", icon: Shield, label: "Administración" });
+    items.push({ href: "/admin", icon: Building2, label: "Sucursales" });
+    items.push({ href: "/admin/users", icon: UserCog, label: "Usuarios" });
     items.push({ href: "/supervisor", icon: LayoutDashboard, label: "Panel supervisor" });
+    items.push({ href: "/supervisor/matriculas", icon: ClipboardList, label: "Matrículas" });
   }
   return items;
 }
