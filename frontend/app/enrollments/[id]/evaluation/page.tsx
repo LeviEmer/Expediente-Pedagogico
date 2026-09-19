@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardCheck, FlagTriangleRight, Save } from "lucide-react";
 import { api, GeneralEvaluationDimension } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Button, Card, PageHeader } from "@/components/ui";
+import { Button, Card, ConfirmDialog, PageHeader } from "@/components/ui";
 
 export default function GeneralEvaluationPage() {
   const { id: enrollmentId } = useParams<{ id: string }>();
@@ -15,6 +15,7 @@ export default function GeneralEvaluationPage() {
   const [observations, setObservations] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmFinish, setConfirmFinish] = useState(false);
 
   useEffect(() => {
     api.get<GeneralEvaluationDimension[]>("/course-types/meta/general-evaluation-dimensions").then(setDimensions);
@@ -37,19 +38,15 @@ export default function GeneralEvaluationPage() {
   }
 
   async function finishCourse() {
-    if (!window.confirm("¿Finalizar el curso y enviar el reporte general? Esta acción no se puede deshacer.")) {
-      return;
-    }
     setBusy(true);
     setStatus(null);
     try {
       await saveEvaluation();
       await api.patch(`/enrollments/${enrollmentId}/finish`);
-      setStatus("Curso finalizado. Reporte general enviado al alumno.");
-      setTimeout(() => router.push(`/enrollments/${enrollmentId}/history`), 1500);
+      router.push(`/enrollments/${enrollmentId}/history`);
     } catch (err) {
+      setConfirmFinish(false);
       setStatus(err instanceof Error ? err.message : "Error al finalizar el curso");
-    } finally {
       setBusy(false);
     }
   }
@@ -126,7 +123,7 @@ export default function GeneralEvaluationPage() {
             <Button
               variant="warning"
               icon={FlagTriangleRight}
-              onClick={finishCourse}
+              onClick={() => setConfirmFinish(true)}
               busy={busy}
               fullWidthOnMobile
               title="Esta acción finaliza el curso y no se puede deshacer"
@@ -135,6 +132,17 @@ export default function GeneralEvaluationPage() {
             </Button>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={confirmFinish}
+          title="¿Finalizar el curso?"
+          description="Se enviará el reporte general al alumno y ya no podrás editar esta matrícula después. Esta acción no se puede deshacer."
+          confirmLabel="Finalizar y enviar"
+          variant="warning"
+          busy={busy}
+          onConfirm={finishCourse}
+          onCancel={() => setConfirmFinish(false)}
+        />
       </main>
     </div>
   );
