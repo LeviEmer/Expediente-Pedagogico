@@ -19,28 +19,36 @@ export class MailService {
     }
   }
 
-  private async send(to: string, subject: string, html: string) {
+  // `to` va al alumno (destinatario principal); `cc` es todo lo demás —
+  // instructor, supervisor(es) de la sucursal y el BCC_ADMIN fijo si está
+  // configurado. Filtra vacíos/duplicados para no reventar la llamada a Resend.
+  private async send(to: string, cc: (string | undefined | null)[], subject: string, html: string) {
+    const ccList = Array.from(new Set([...cc, this.bccAdmin].filter((e): e is string => !!e && e !== to)));
     if (!this.resend) {
-      this.logger.log(`[correo simulado] Para: ${to} | Cc: ${this.bccAdmin} | Asunto: ${subject}`);
+      this.logger.log(`[correo simulado] Para: ${to} | Cc: ${ccList.join(", ") || "(ninguno)"} | Asunto: ${subject}`);
       return { simulated: true };
     }
     return this.resend.emails.send({
       from: this.from,
       to,
-      cc: this.bccAdmin ? [this.bccAdmin] : undefined,
+      cc: ccList.length ? ccList : undefined,
       subject,
       html,
     });
   }
 
-  async sendDailyReport(params: Parameters<typeof dailyReportHtml>[0] & { studentEmail: string }) {
+  async sendDailyReport(
+    params: Parameters<typeof dailyReportHtml>[0] & { studentEmail: string; ccEmails?: (string | undefined | null)[] },
+  ) {
     const html = dailyReportHtml(params);
     const dateStr = params.sessionDate.toLocaleDateString("es-CR");
-    return this.send(params.studentEmail, `Reporte de clase — ${dateStr}`, html);
+    return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte de clase — ${dateStr}`, html);
   }
 
-  async sendFinalReport(params: Parameters<typeof finalReportHtml>[0] & { studentEmail: string }) {
+  async sendFinalReport(
+    params: Parameters<typeof finalReportHtml>[0] & { studentEmail: string; ccEmails?: (string | undefined | null)[] },
+  ) {
     const html = finalReportHtml(params);
-    return this.send(params.studentEmail, `Reporte general final — ${params.courseTypeName}`, html);
+    return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte general final — ${params.courseTypeName}`, html);
   }
 }

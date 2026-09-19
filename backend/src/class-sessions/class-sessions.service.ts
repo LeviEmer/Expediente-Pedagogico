@@ -225,9 +225,16 @@ export class ClassSessionsService {
       },
     });
 
+    // Copia al instructor que dio la clase y a los supervisores de su
+    // sucursal — antes el correo solo llegaba al alumno.
+    const supervisors = await this.prisma.user.findMany({
+      where: { role: "SUPERVISOR", branchId: session.enrollment.branchId, active: true },
+    });
+
     try {
       await this.mail.sendDailyReport({
         studentEmail: session.enrollment.student.email,
+        ccEmails: [session.instructor.email, ...supervisors.map((s) => s.email)],
         studentName: `${session.enrollment.student.firstName} ${session.enrollment.student.lastName}`,
         instructorName: `${session.instructor.firstName} ${session.instructor.lastName}`,
         courseTypeName: session.enrollment.courseType.name,

@@ -267,7 +267,13 @@ export class EnrollmentsService {
   private async sendFinalReportEmail(enrollmentId: string): Promise<boolean> {
     const enrollment = await this.prisma.enrollment.findUniqueOrThrow({
       where: { id: enrollmentId },
-      include: { student: true, courseType: true },
+      include: { student: true, courseType: true, instructor: true },
+    });
+
+    // Copia al instructor a cargo y a los supervisores de la sucursal —
+    // antes el correo solo llegaba al alumno.
+    const supervisors = await this.prisma.user.findMany({
+      where: { role: "SUPERVISOR", branchId: enrollment.branchId, active: true },
     });
 
     const lessons = await this.prisma.enrollmentLesson.findMany({
@@ -292,6 +298,7 @@ export class EnrollmentsService {
     try {
       await this.mail.sendFinalReport({
         studentEmail: enrollment.student.email,
+        ccEmails: [enrollment.instructor?.email, ...supervisors.map((s) => s.email)],
         studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
         courseTypeName: enrollment.courseType.name,
         startDate: enrollment.startDate,
