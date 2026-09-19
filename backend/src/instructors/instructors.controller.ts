@@ -14,25 +14,25 @@ export class InstructorsController {
   constructor(private instructorsService: InstructorsService) {}
 
   @Post()
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN")
   create(@Body() dto: CreateInstructorDto, @CurrentUser() user: AuthenticatedUser) {
     return this.instructorsService.create(dto, user);
   }
 
   @Get()
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN", "GENERAL_SUPERVISOR")
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.instructorsService.findAll(user);
   }
 
   @Get(":id")
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN", "GENERAL_SUPERVISOR")
   findOne(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.instructorsService.findOne(id, user);
   }
 
   @Patch(":id")
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN")
   update(@Param("id") id: string, @Body() dto: UpdateInstructorDto, @CurrentUser() user: AuthenticatedUser) {
     return this.instructorsService.update(id, dto, user);
   }

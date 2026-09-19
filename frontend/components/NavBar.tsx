@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, GraduationCap, LayoutDashboard, LogOut, UserPlus, Users } from "lucide-react";
+import { Building2, GraduationCap, LayoutDashboard, LogOut, Shield, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "@/components/ui";
 
@@ -45,16 +45,33 @@ export function NavBar() {
               </NavLink>
             </>
           )}
-          {user?.role === "SUPERVISOR" && (
+          {(user?.role === "SUPERVISOR" || user?.role === "GENERAL_SUPERVISOR") && (
             <NavLink href="/supervisor" icon={LayoutDashboard} active={pathname === "/supervisor"}>
-              Panel supervisor
+              {user.role === "GENERAL_SUPERVISOR" ? "Panel general (solo lectura)" : "Panel supervisor"}
             </NavLink>
           )}
-          {user?.branchName && (
+          {user?.role === "ADMIN" && (
+            <>
+              <NavLink href="/admin" icon={Shield} active={pathname === "/admin"}>
+                Administración
+              </NavLink>
+              <NavLink href="/supervisor" icon={LayoutDashboard} active={pathname === "/supervisor"}>
+                Panel supervisor
+              </NavLink>
+            </>
+          )}
+          {user?.branchName ? (
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-gray-100 px-2.5 py-1.5 text-sm font-medium text-gray-600">
               <Building2 className="h-4 w-4" aria-hidden="true" />
               {user.branchName}
             </span>
+          ) : (
+            user && (user.role === "ADMIN" || user.role === "GENERAL_SUPERVISOR") && (
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-gray-100 px-2.5 py-1.5 text-sm font-medium text-gray-600">
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+                Todas las sucursales
+              </span>
+            )
           )}
           {user && (
             <button

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
+import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -528,6 +529,22 @@ async function main() {
     }
   }
 
+  console.log("Seeding administrador...");
+  const adminEmail = "emersonmelara44@gmail.com";
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  let adminPassword: string | null = null;
+  if (!existingAdmin) {
+    adminPassword = process.env.SEED_ADMIN_PASSWORD ?? crypto.randomBytes(9).toString("base64url");
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        passwordHash: await bcrypt.hash(adminPassword, 10),
+        role: "ADMIN",
+        // Sin sucursal: el ADMIN ve y gestiona ambas.
+      },
+    });
+  }
+
   console.log("Seeding sucursales...");
   const branchNames = ["Sucursal San Salvador", "Sucursal Sonsonate"];
   const credentials: { branch: string; email: string; password: string }[] = [];
@@ -562,6 +579,9 @@ async function main() {
   }
 
   console.log("Seed completado.");
+  if (adminPassword) {
+    console.log(`Administrador creado: ${adminEmail} / ${adminPassword} (guarda esta contraseña, no se vuelve a mostrar)`);
+  }
   console.log("Credenciales de prueba (cambiar en producción):");
   for (const c of credentials) {
     console.log(`  ${c.branch}: ${c.email} / ${c.password}`);

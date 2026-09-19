@@ -44,13 +44,42 @@ export const api = {
 
 // ---------- Tipos compartidos con la API ----------
 
-export type Role = "SUPERVISOR" | "INSTRUCTOR";
+export type Role = "ADMIN" | "SUPERVISOR" | "GENERAL_SUPERVISOR" | "INSTRUCTOR";
+
+export type Branch = { id: string; name: string; active: boolean };
+
+// Cuentas de supervisor / supervisor general, gestionadas por el ADMIN
+// (los instructores se gestionan aparte, bajo /instructors).
+export type AdminUser = {
+  id: string;
+  email: string;
+  role: Role;
+  active: boolean;
+  branchId: string | null;
+  branch?: Branch | null;
+};
 
 export type CourseType = { id: string; name: string; active: boolean };
 
-export type Student = { id: string; firstName: string; lastName: string; email: string; phone?: string | null };
+export type Student = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  branchId?: string;
+  branch?: Branch;
+};
 
-export type Instructor = { id: string; firstName: string; lastName: string; email: string; active?: boolean };
+export type Instructor = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  active?: boolean;
+  branchId?: string;
+  branch?: Branch;
+};
 
 export type Enrollment = {
   id: string;
@@ -65,6 +94,8 @@ export type Enrollment = {
   student?: Student;
   courseType?: CourseType;
   instructor?: Instructor | null;
+  branchId?: string;
+  branch?: Branch;
 };
 
 // Resultado mínimo de búsqueda por nombre — no incluye lecciones ni progreso,

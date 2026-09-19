@@ -2,12 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 
+import { Role } from "../common/types";
+
 export type JwtPayload = {
   sub: string;
   email: string;
-  role: "SUPERVISOR" | "INSTRUCTOR";
+  role: Role;
   instructorId?: string;
-  branchId: string;
+  branchId: string | null;
 };
 
 @Injectable()

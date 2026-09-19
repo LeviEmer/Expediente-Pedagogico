@@ -9,7 +9,8 @@ type AuthUser = {
   email: string;
   role: Role;
   instructorId: string | null;
-  branchId: string;
+  // null para ADMIN/GENERAL_SUPERVISOR: ven ambas sucursales, no pertenecen a una sola.
+  branchId: string | null;
   branchName: string | null;
 };
 

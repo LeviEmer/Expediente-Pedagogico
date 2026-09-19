@@ -27,7 +27,9 @@ model Branch {
 // ---------- Auth ----------
 
 enum UserRole {
-  SUPERVISOR
+  ADMIN // dueño de la app: ve/gestiona ambas sucursales + gestión de sucursales, usuarios y currículo
+  SUPERVISOR // gestiona su propia sucursal
+  GENERAL_SUPERVISOR // ve ambas sucursales, solo lectura
   INSTRUCTOR
 }
 

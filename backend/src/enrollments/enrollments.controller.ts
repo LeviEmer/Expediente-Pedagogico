@@ -16,13 +16,13 @@ export class EnrollmentsController {
   constructor(private enrollmentsService: EnrollmentsService) {}
 
   @Post()
-  @Roles("SUPERVISOR", "INSTRUCTOR")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   create(@Body() dto: CreateEnrollmentDto, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.create(dto, user);
   }
 
   @Get()
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN", "GENERAL_SUPERVISOR")
   findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.findAll(user);
   }
@@ -46,16 +46,19 @@ export class EnrollmentsController {
   }
 
   @Patch(":id")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   update(@Param("id") id: string, @Body() dto: UpdateEnrollmentDto, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.update(id, dto, user);
   }
 
   @Patch(":id/finish")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   finish(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.finish(id, user);
   }
 
   @Patch(":id/general-evaluation")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   updateGeneralEvaluation(
     @Param("id") id: string,
     @Body() dto: UpdateGeneralEvaluationDto,
@@ -67,13 +70,14 @@ export class EnrollmentsController {
   // El instructor se asigna a sí mismo el alumno (handoff en la calle); el
   // supervisor puede asignarlo a cualquier instructor con instructorId en el body.
   @Patch(":id/claim-instructor")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   claimInstructor(@Param("id") id: string, @Body() dto: ClaimInstructorDto, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.claimInstructor(id, user, dto.instructorId);
   }
 
   // Reenvío manual del reporte general final si el envío original falló.
   @Post(":id/resend-final-report")
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN")
   resendFinalReport(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.enrollmentsService.resendFinalReport(id, user);
   }

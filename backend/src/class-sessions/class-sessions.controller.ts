@@ -14,7 +14,7 @@ export class ClassSessionsController {
   constructor(private classSessionsService: ClassSessionsService) {}
 
   @Post("enrollments/:enrollmentId/class-sessions")
-  @Roles("SUPERVISOR", "INSTRUCTOR")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   openOrGetToday(
     @Param("enrollmentId") enrollmentId: string,
     @Body() dto: OpenSessionDto,
@@ -34,26 +34,26 @@ export class ClassSessionsController {
   }
 
   @Patch("class-sessions/:id/lessons")
-  @Roles("SUPERVISOR", "INSTRUCTOR")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   saveLessons(@Param("id") id: string, @Body() dto: SaveLessonsDto, @CurrentUser() user: AuthenticatedUser) {
     return this.classSessionsService.saveLessons(id, dto, user);
   }
 
   @Post("class-sessions/:id/close")
-  @Roles("SUPERVISOR", "INSTRUCTOR")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   close(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.classSessionsService.close(id, user);
   }
 
   @Post("class-sessions/:id/resend-report")
-  @Roles("SUPERVISOR", "INSTRUCTOR")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   resendReport(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.classSessionsService.resendDailyReport(id, user);
   }
 
-  // [SUPUESTO — sección 12] Solo el supervisor puede reabrir una sesión cerrada.
+  // [SUPUESTO — sección 12] Solo el supervisor (de su sucursal) o el admin pueden reabrir una sesión cerrada.
   @Patch("class-sessions/:id/reopen")
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN")
   reopen(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.classSessionsService.reopen(id, user);
   }

@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuthenticatedUser } from "../common/types";
+import { hasGlobalAccess, resolveBranchId } from "../common/branch-access";
 import { CreateInstructorDto } from "./dto/create-instructor.dto";
 import { UpdateInstructorDto } from "./dto/update-instructor.dto";
 
@@ -10,14 +11,15 @@ export class InstructorsService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateInstructorDto, user: AuthenticatedUser) {
+    const branchId = resolveBranchId(user, dto.branchId);
     if (dto.password) {
       const passwordHash = await bcrypt.hash(dto.password, 10);
       const authUser = await this.prisma.user.create({
-        data: { email: dto.email, passwordHash, role: "INSTRUCTOR", branchId: user.branchId },
+        data: { email: dto.email, passwordHash, role: "INSTRUCTOR", branchId },
       });
       return this.prisma.instructor.create({
         data: {
-          branchId: user.branchId,
+          branchId,
           firstName: dto.firstName,
           lastName: dto.lastName,
           email: dto.email,
@@ -26,15 +28,17 @@ export class InstructorsService {
       });
     }
     return this.prisma.instructor.create({
-      data: { branchId: user.branchId, firstName: dto.firstName, lastName: dto.lastName, email: dto.email },
+      data: { branchId, firstName: dto.firstName, lastName: dto.lastName, email: dto.email },
     });
   }
 
   // Aislamiento entre sucursales — devuelve todos (activos e inactivos) de la
   // sucursal del usuario, para que el supervisor pueda reactivarlos.
+  // ADMIN/GENERAL_SUPERVISOR ven los de ambas sucursales.
   findAll(user: AuthenticatedUser) {
     return this.prisma.instructor.findMany({
-      where: { branchId: user.branchId },
+      where: hasGlobalAccess(user) ? {} : { branchId: user.branchId ?? undefined },
+      include: { branch: true },
       orderBy: [{ active: "desc" }, { firstName: "asc" }],
     });
   }
@@ -42,7 +46,7 @@ export class InstructorsService {
   async findOne(id: string, user: AuthenticatedUser) {
     const instructor = await this.prisma.instructor.findUnique({ where: { id } });
     if (!instructor) throw new NotFoundException("Instructor no encontrado");
-    if (instructor.branchId !== user.branchId) {
+    if (!hasGlobalAccess(user) && instructor.branchId !== user.branchId) {
       throw new ForbiddenException("Este instructor no pertenece a tu sucursal");
     }
     return instructor;

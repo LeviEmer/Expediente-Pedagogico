@@ -14,4 +14,10 @@ export class CreateInstructorDto {
   @IsString()
   @MinLength(6)
   password?: string; // si se provee, crea también el User de login para este instructor
+
+  // Solo relevante para ADMIN (no tiene sucursal propia, debe indicarla).
+  // Cualquier otro rol la ignora y usa la suya.
+  @IsOptional()
+  @IsString()
+  branchId?: string;
 }

@@ -25,9 +25,10 @@ export class AuthService {
 
     // La sucursal del usuario es la fuente de verdad para delimitar qué ve
     // (aislamiento entre sucursales); para instructores debe coincidir con la
-    // de su propio registro Instructor.
-    const branchId = user.branchId ?? user.instructor?.branchId;
-    if (!branchId) {
+    // de su propio registro Instructor. ADMIN y GENERAL_SUPERVISOR no tienen
+    // una sola sucursal — ven ambas — así que branchId queda en null.
+    const branchId = user.branchId ?? user.instructor?.branchId ?? null;
+    if (!branchId && user.role !== "ADMIN" && user.role !== "GENERAL_SUPERVISOR") {
       throw new UnauthorizedException("Este usuario no tiene una sucursal asignada");
     }
 

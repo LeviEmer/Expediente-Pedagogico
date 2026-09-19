@@ -9,6 +9,8 @@ import { InstructorsModule } from "./instructors/instructors.module";
 import { CourseTypesModule } from "./course-types/course-types.module";
 import { EnrollmentsModule } from "./enrollments/enrollments.module";
 import { ClassSessionsModule } from "./class-sessions/class-sessions.module";
+import { BranchesModule } from "./branches/branches.module";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { ClassSessionsModule } from "./class-sessions/class-sessions.module";
     CourseTypesModule,
     EnrollmentsModule,
     ClassSessionsModule,
+    BranchesModule,
+    UsersModule,
   ],
   controllers: [AppController],
 })

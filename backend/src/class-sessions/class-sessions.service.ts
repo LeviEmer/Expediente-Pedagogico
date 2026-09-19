@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { MailService } from "../mail/mail.service";
 import { EnrollmentsService } from "../enrollments/enrollments.service";
 import { AuthenticatedUser } from "../common/types";
+import { hasGlobalAccess } from "../common/branch-access";
 import { OpenSessionDto } from "./dto/open-session.dto";
 import { SaveLessonsDto } from "./dto/save-lessons.dto";
 
@@ -31,7 +32,7 @@ export class ClassSessionsService {
   // sesiones de alumnos actualmente asignados a él.
   private assertAccess(enrollment: { branchId: string; instructorId: string | null }, user?: AuthenticatedUser) {
     if (!user) return;
-    if (enrollment.branchId !== user.branchId) {
+    if (!hasGlobalAccess(user) && enrollment.branchId !== user.branchId) {
       throw new ForbiddenException("Esta sesión no pertenece a tu sucursal");
     }
     if (user.role === "INSTRUCTOR" && enrollment.instructorId !== user.instructorId) {
@@ -290,7 +291,7 @@ export class ClassSessionsService {
   // por ejemplo si el instructor cerró por error o necesita corregir algo —
   // y solo dentro de su propia sucursal.
   async reopen(classSessionId: string, user?: AuthenticatedUser) {
-    if (user && user.role !== "SUPERVISOR") {
+    if (user && user.role !== "SUPERVISOR" && user.role !== "ADMIN") {
       throw new ForbiddenException("Solo el supervisor puede reabrir una sesión cerrada");
     }
     const session = await this.prisma.classSession.findUnique({

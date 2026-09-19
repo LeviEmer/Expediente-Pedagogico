@@ -13,9 +13,10 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { api, CourseType, Enrollment, Instructor, Student } from "@/lib/api";
+import { api, Branch, CourseType, Enrollment, Instructor, Student } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
 import { Badge, Button, cx, EmptyState, PageHeader, TextField } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
 
 function matches(query: string, ...fields: (string | undefined | null)[]) {
   if (!query.trim()) return true;
@@ -51,12 +52,18 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: str
 }
 
 export default function SupervisorPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
+  const isReadOnly = user?.role === "GENERAL_SUPERVISOR";
+  const showBranchColumn = isAdmin || isReadOnly;
+
   const [students, setStudents] = useState<Student[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [courseTypes, setCourseTypes] = useState<CourseType[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
 
-  const [newInstructor, setNewInstructor] = useState({ firstName: "", lastName: "", email: "", password: "" });
+  const [newInstructor, setNewInstructor] = useState({ firstName: "", lastName: "", email: "", password: "", branchId: "" });
   const [status, setStatus] = useState<string | null>(null);
 
   const [instructorQuery, setInstructorQuery] = useState("");
@@ -73,9 +80,10 @@ export default function SupervisorPage() {
     api.get<Instructor[]>("/instructors").then(setInstructors);
     api.get<CourseType[]>("/course-types").then(setCourseTypes);
     api.get<Enrollment[]>("/enrollments").then(setEnrollments);
+    if (isAdmin) api.get<Branch[]>("/branches").then(setBranches);
   }
 
-  useEffect(reload, []);
+  useEffect(reload, [isAdmin]);
 
   const filteredInstructors = useMemo(
     () => instructors.filter((i) => matches(instructorQuery, i.firstName, i.lastName, i.email)),
@@ -98,12 +106,17 @@ export default function SupervisorPage() {
   async function createInstructor(e: React.FormEvent) {
     e.preventDefault();
     setStatus(null);
+    if (isAdmin && !newInstructor.branchId) {
+      setStatus("Elige la sucursal del instructor.");
+      return;
+    }
     try {
       await api.post("/instructors", {
         ...newInstructor,
         password: newInstructor.password || undefined,
+        branchId: newInstructor.branchId || undefined,
       });
-      setNewInstructor({ firstName: "", lastName: "", email: "", password: "" });
+      setNewInstructor({ firstName: "", lastName: "", email: "", password: "", branchId: "" });
       setStatus("Instructor creado.");
       reload();
     } catch (err) {
@@ -208,39 +221,58 @@ export default function SupervisorPage() {
             <UserCog className="h-4 w-4 text-blue-600" aria-hidden="true" />
             Instructores
           </h2>
-          <form onSubmit={createInstructor} className="mb-4 flex flex-wrap gap-2">
-            <input
-              placeholder="Nombre"
-              required
-              value={newInstructor.firstName}
-              onChange={(e) => setNewInstructor((s) => ({ ...s, firstName: e.target.value }))}
-              className={editInputClass}
-            />
-            <input
-              placeholder="Apellidos"
-              required
-              value={newInstructor.lastName}
-              onChange={(e) => setNewInstructor((s) => ({ ...s, lastName: e.target.value }))}
-              className={editInputClass}
-            />
-            <input
-              placeholder="Correo"
-              type="email"
-              required
-              value={newInstructor.email}
-              onChange={(e) => setNewInstructor((s) => ({ ...s, email: e.target.value }))}
-              className={editInputClass}
-            />
-            <input
-              placeholder="Contraseña (opcional, crea acceso)"
-              value={newInstructor.password}
-              onChange={(e) => setNewInstructor((s) => ({ ...s, password: e.target.value }))}
-              className={editInputClass}
-            />
-            <Button type="submit" icon={UserPlus}>
-              Agregar
-            </Button>
-          </form>
+          {!isReadOnly && (
+            <form onSubmit={createInstructor} className="mb-4 flex flex-wrap gap-2">
+              <input
+                placeholder="Nombre"
+                required
+                value={newInstructor.firstName}
+                onChange={(e) => setNewInstructor((s) => ({ ...s, firstName: e.target.value }))}
+                className={editInputClass}
+              />
+              <input
+                placeholder="Apellidos"
+                required
+                value={newInstructor.lastName}
+                onChange={(e) => setNewInstructor((s) => ({ ...s, lastName: e.target.value }))}
+                className={editInputClass}
+              />
+              <input
+                placeholder="Correo"
+                type="email"
+                required
+                value={newInstructor.email}
+                onChange={(e) => setNewInstructor((s) => ({ ...s, email: e.target.value }))}
+                className={editInputClass}
+              />
+              <input
+                placeholder="Contraseña (opcional, crea acceso)"
+                value={newInstructor.password}
+                onChange={(e) => setNewInstructor((s) => ({ ...s, password: e.target.value }))}
+                className={editInputClass}
+              />
+              {isAdmin && (
+                <select
+                  required
+                  value={newInstructor.branchId}
+                  onChange={(e) => setNewInstructor((s) => ({ ...s, branchId: e.target.value }))}
+                  className={editInputClass}
+                >
+                  <option value="" disabled>
+                    Sucursal...
+                  </option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button type="submit" icon={UserPlus}>
+                Agregar
+              </Button>
+            </form>
+          )}
 
           <SearchInput value={instructorQuery} onChange={setInstructorQuery} placeholder="Buscar instructor..." />
 
@@ -289,17 +321,20 @@ export default function SupervisorPage() {
                           {i.firstName} {i.lastName} — {i.email}
                         </span>
                         {i.active === false && <Badge tone="gray">Inactivo</Badge>}
+                        {showBranchColumn && i.branch && <Badge tone="gray">{i.branch.name}</Badge>}
                       </div>
-                      <div className="flex shrink-0 gap-1">
-                        <button onClick={() => startEditInstructor(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 hover:text-blue-700">
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                          Editar
-                        </button>
-                        <button onClick={() => toggleInstructorActive(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50">
-                          <Power className="h-3.5 w-3.5" aria-hidden="true" />
-                          {i.active === false ? "Reactivar" : "Desactivar"}
-                        </button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex shrink-0 gap-1">
+                          <button onClick={() => startEditInstructor(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 hover:text-blue-700">
+                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            Editar
+                          </button>
+                          <button onClick={() => toggleInstructorActive(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50">
+                            <Power className="h-3.5 w-3.5" aria-hidden="true" />
+                            {i.active === false ? "Reactivar" : "Desactivar"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </li>
@@ -329,24 +364,27 @@ export default function SupervisorPage() {
                       {e.student?.firstName} {e.student?.lastName} — {e.courseType?.name} · {e.transmission}
                     </span>
                     <Badge tone={e.status === "ACTIVO" ? "green" : e.status === "FINALIZADO" ? "blue" : "gray"}>{e.status}</Badge>
+                    {showBranchColumn && e.branch && <Badge tone="gray">{e.branch.name}</Badge>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={e.instructor?.id ?? ""}
-                      onChange={(ev) => reassignInstructor(e.id, ev.target.value)}
-                      className="rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
-                    >
-                      <option value="" disabled>
-                        Sin instructor
-                      </option>
-                      {instructors
-                        .filter((i) => i.active !== false)
-                        .map((i) => (
-                          <option key={i.id} value={i.id}>
-                            {i.firstName} {i.lastName}
-                          </option>
-                        ))}
-                    </select>
+                    {!isReadOnly && (
+                      <select
+                        value={e.instructor?.id ?? ""}
+                        onChange={(ev) => reassignInstructor(e.id, ev.target.value)}
+                        className="rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                      >
+                        <option value="" disabled>
+                          Sin instructor
+                        </option>
+                        {instructors
+                          .filter((i) => i.active !== false && (!e.branchId || i.branchId === e.branchId))
+                          .map((i) => (
+                            <option key={i.id} value={i.id}>
+                              {i.firstName} {i.lastName}
+                            </option>
+                          ))}
+                      </select>
+                    )}
                     <Link href={`/enrollments/${e.id}/history`} className="text-xs font-medium text-blue-700 hover:underline">
                       Ver historial y clases
                     </Link>
@@ -409,17 +447,20 @@ export default function SupervisorPage() {
                         <span className="break-words">
                           {s.firstName} {s.lastName} — {s.email}
                         </span>
+                        {showBranchColumn && s.branch && <Badge tone="gray">{s.branch.name}</Badge>}
                       </div>
-                      <div className="flex shrink-0 gap-1">
-                        <button onClick={() => startEditStudent(s)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 hover:text-blue-700">
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                          Editar
-                        </button>
-                        <Link href="/enrollments/new" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-blue-700 hover:bg-blue-50">
-                          <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-                          Nueva matrícula
-                        </Link>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex shrink-0 gap-1">
+                          <button onClick={() => startEditStudent(s)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50 hover:text-blue-700">
+                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            Editar
+                          </button>
+                          <Link href="/enrollments/new" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-blue-700 hover:bg-blue-50">
+                            <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                            Nueva matrícula
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   )}
                 </li>

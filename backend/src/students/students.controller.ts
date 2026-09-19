@@ -14,7 +14,7 @@ export class StudentsController {
   constructor(private studentsService: StudentsService) {}
 
   @Post()
-  @Roles("SUPERVISOR", "INSTRUCTOR")
+  @Roles("SUPERVISOR", "INSTRUCTOR", "ADMIN")
   create(@Body() dto: CreateStudentDto, @CurrentUser() user: AuthenticatedUser) {
     return this.studentsService.create(dto, user);
   }
@@ -30,7 +30,7 @@ export class StudentsController {
   }
 
   @Patch(":id")
-  @Roles("SUPERVISOR")
+  @Roles("SUPERVISOR", "ADMIN")
   update(@Param("id") id: string, @Body() dto: UpdateStudentDto, @CurrentUser() user: AuthenticatedUser) {
     return this.studentsService.update(id, dto, user);
   }
