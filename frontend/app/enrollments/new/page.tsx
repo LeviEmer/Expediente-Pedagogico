@@ -15,13 +15,10 @@ export default function NewEnrollmentPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [courseTypes, setCourseTypes] = useState<CourseType[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Datos generales del alumno (para crearlo junto con la matrícula si es nuevo)
-  const [studentMode, setStudentMode] = useState<"new" | "existing">("new");
-  const [studentId, setStudentId] = useState("");
+  // Esta pantalla solo matricula alumnos nuevos.
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -43,7 +40,6 @@ export default function NewEnrollmentPage() {
       setCourseTypes(types);
       if (types[0]) setCourseTypeId(types[0].id);
     });
-    api.get<Student[]>("/students").then(setStudents);
     if (user?.role === "SUPERVISOR") {
       api.get<Instructor[]>("/instructors").then((all) => {
         const active = all.filter((i) => i.active !== false);
@@ -58,16 +54,12 @@ export default function NewEnrollmentPage() {
     setError(null);
     setBusy(true);
     try {
-      let finalStudentId = studentId;
-      if (studentMode === "new") {
-        const student = await api.post<Student>("/students", { firstName, lastName, email, phone: phone || undefined });
-        finalStudentId = student.id;
-      }
+      const student = await api.post<Student>("/students", { firstName, lastName, email, phone: phone || undefined });
 
       const finalInstructorId = user?.role === "SUPERVISOR" ? instructorId : (user?.instructorId ?? undefined);
 
       const enrollment = await api.post<{ id: string }>("/enrollments", {
-        studentId: finalStudentId,
+        studentId: student.id,
         courseTypeId,
         instructorId: finalInstructorId || undefined,
         transmission,
@@ -108,40 +100,12 @@ export default function NewEnrollmentPage() {
               <UserPlus className="h-4 w-4 text-blue-600" aria-hidden="true" />
               Alumno
             </legend>
-            <div className="flex gap-2 text-sm">
-              <button
-                type="button"
-                onClick={() => setStudentMode("new")}
-                className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${studentMode === "new" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-              >
-                Alumno nuevo
-              </button>
-              <button
-                type="button"
-                onClick={() => setStudentMode("existing")}
-                className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${studentMode === "existing" ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-50"}`}
-              >
-                Alumno existente
-              </button>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <input placeholder="Nombre" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
+              <input placeholder="Apellidos" required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
+              <input placeholder="Correo" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={`sm:col-span-2 ${inputClass}`} />
+              <input placeholder="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} className={`sm:col-span-2 ${inputClass}`} />
             </div>
-
-            {studentMode === "existing" ? (
-              <select value={studentId} onChange={(e) => setStudentId(e.target.value)} required className={inputClass}>
-                <option value="">Seleccionar alumno...</option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.firstName} {s.lastName} — {s.email}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <input placeholder="Nombre" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClass} />
-                <input placeholder="Apellidos" required value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
-                <input placeholder="Correo" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={`sm:col-span-2 ${inputClass}`} />
-                <input placeholder="Teléfono (opcional)" value={phone} onChange={(e) => setPhone(e.target.value)} className={`sm:col-span-2 ${inputClass}`} />
-              </div>
-            )}
           </fieldset>
 
           <fieldset className="space-y-3 border-t border-gray-100 pt-5">
