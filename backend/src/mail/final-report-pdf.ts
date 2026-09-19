@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { SCHOOL_NAME } from "./templates";
 
 const COLORS = {
   blue: "#2563eb",
@@ -63,9 +64,10 @@ export function buildFinalReportPdf(params: FinalReportPdfParams): Promise<Buffe
     doc
       .fillColor("#ffffff")
       .font("Helvetica-Bold")
-      .fontSize(11)
-      .text("EXPEDIENTE PEDAGÓGICO", MARGIN, 28, { characterSpacing: 1 });
-    doc.fontSize(20).text("Reporte general final", MARGIN, 46);
+      .fontSize(15)
+      .text(SCHOOL_NAME.toUpperCase(), MARGIN, 24, { characterSpacing: 0.5 });
+    doc.fontSize(11).font("Helvetica").text("Expediente Pedagógico", MARGIN, 43);
+    doc.font("Helvetica-Bold").fontSize(16).text("Reporte general final", MARGIN, 60);
     doc.y = 112;
 
     // ---- Tarjeta de datos del alumno ----
@@ -171,7 +173,7 @@ export function buildFinalReportPdf(params: FinalReportPdfParams): Promise<Buffe
         .font("Helvetica")
         .fontSize(8)
         .fillColor(COLORS.gray400)
-        .text(`Página ${i + 1} de ${range.count}  ·  Generado automáticamente por Expediente Pedagógico`, MARGIN, doc.page.height - 32, {
+        .text(`Página ${i + 1} de ${range.count}  ·  ${SCHOOL_NAME} — Expediente Pedagógico`, MARGIN, doc.page.height - 32, {
           width: CONTENT_WIDTH,
           align: "center",
         });

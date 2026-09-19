@@ -1,3 +1,5 @@
+export const SCHOOL_NAME = "Escuela de Manejo Orellana";
+
 const RATING_LABEL: Record<string, string> = {
   NO: "No",
   MEDIO: "Medio",
@@ -12,10 +14,13 @@ function esc(value: unknown): string {
 function baseLayout(title: string, body: string): string {
   return `
   <div style="font-family: Arial, Helvetica, sans-serif; max-width: 680px; margin: 0 auto; color: #1f2933;">
+    <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; color: #2563eb;">
+      ${esc(SCHOOL_NAME)}
+    </p>
     <h1 style="font-size: 20px; border-bottom: 2px solid #1f2933; padding-bottom: 8px;">${esc(title)}</h1>
     ${body}
     <p style="margin-top: 32px; font-size: 12px; color: #6b7280;">
-      Este correo fue generado automáticamente por el sistema de gestión de clases de la escuela de manejo.
+      Este correo fue generado automáticamente por el sistema de gestión de clases de ${esc(SCHOOL_NAME)}.
     </p>
   </div>`;
 }

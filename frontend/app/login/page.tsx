@@ -35,6 +35,7 @@ export default function LoginPage() {
           <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
             <GraduationCap className="h-6 w-6" aria-hidden="true" />
           </span>
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Escuela de Manejo Orellana</p>
           <h1 className="text-xl font-semibold text-gray-900">Expediente Pedagógico</h1>
           <p className="text-sm text-gray-500">Bienvenido de nuevo — inicia sesión para continuar</p>
         </div>

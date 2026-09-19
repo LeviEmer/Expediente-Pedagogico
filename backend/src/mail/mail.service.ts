@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
-import { dailyReportHtml, finalReportSummaryHtml } from "./templates";
+import { dailyReportHtml, finalReportSummaryHtml, SCHOOL_NAME } from "./templates";
 import { buildFinalReportPdf, FinalReportPdfParams } from "./final-report-pdf";
 
 @Injectable()
@@ -17,7 +17,8 @@ export class MailService {
       gmailUser && gmailAppPassword
         ? nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: gmailAppPassword } })
         : null;
-    this.from = process.env.MAIL_FROM ?? gmailUser ?? "no-reply@tuescuela.com";
+    const fromAddress = process.env.MAIL_FROM ?? gmailUser ?? "no-reply@tuescuela.com";
+    this.from = `${SCHOOL_NAME} <${fromAddress}>`;
     this.bccAdmin = process.env.MAIL_BCC_ADMIN;
     if (!this.transporter) {
       this.logger.warn("GMAIL_USER/GMAIL_APP_PASSWORD no configurados: los correos se registrarán en consola, no se enviarán.");
@@ -58,15 +59,19 @@ export class MailService {
   ) {
     const html = dailyReportHtml(params);
     const dateStr = params.sessionDate.toLocaleDateString("es-CR");
-    return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte de clase — ${dateStr}`, html);
+    return this.send(params.studentEmail, params.ccEmails ?? [], `${SCHOOL_NAME} — Reporte de clase — ${dateStr}`, html);
   }
 
   async sendFinalReport(params: FinalReportPdfParams & { studentEmail: string; ccEmails?: (string | undefined | null)[] }) {
     const html = finalReportSummaryHtml(params);
     const pdf = await buildFinalReportPdf(params);
     const fileName = `reporte-final-${params.studentName.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}.pdf`;
-    return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte general final — ${params.courseTypeName}`, html, [
-      { filename: fileName, content: pdf },
-    ]);
+    return this.send(
+      params.studentEmail,
+      params.ccEmails ?? [],
+      `${SCHOOL_NAME} — Reporte general final — ${params.courseTypeName}`,
+      html,
+      [{ filename: fileName, content: pdf }],
+    );
   }
 }

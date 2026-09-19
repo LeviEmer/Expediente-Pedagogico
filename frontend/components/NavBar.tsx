@@ -28,11 +28,16 @@ export function NavBar() {
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-gray-900">
+        <Link href="/" className="flex items-center gap-2 text-gray-900">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
             <GraduationCap className="h-4 w-4" aria-hidden="true" />
           </span>
-          <span className="whitespace-nowrap">Expediente Pedagógico</span>
+          <span className="leading-tight">
+            <span className="block whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+              Escuela de Manejo Orellana
+            </span>
+            <span className="block whitespace-nowrap font-semibold">Expediente Pedagógico</span>
+          </span>
         </Link>
         <nav className="flex flex-wrap items-center gap-1 text-sm">
           {user?.role === "INSTRUCTOR" && (

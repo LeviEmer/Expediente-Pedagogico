@@ -3,8 +3,8 @@ import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Expediente Pedagógico",
-  description: "Sistema de gestión de clases de la escuela de manejo",
+  title: "Escuela de Manejo Orellana — Expediente Pedagógico",
+  description: "Sistema de gestión de clases de la Escuela de Manejo Orellana",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
