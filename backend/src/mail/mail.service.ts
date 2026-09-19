@@ -1,34 +1,38 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Resend } from "resend";
+import * as nodemailer from "nodemailer";
 import { dailyReportHtml, finalReportHtml } from "./templates";
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly resend: Resend | null;
+  private readonly transporter: nodemailer.Transporter | null;
   private readonly from: string;
   private readonly bccAdmin: string | undefined;
 
   constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    this.resend = apiKey ? new Resend(apiKey) : null;
-    this.from = process.env.MAIL_FROM ?? "no-reply@tuescuela.com";
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+    this.transporter =
+      gmailUser && gmailAppPassword
+        ? nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: gmailAppPassword } })
+        : null;
+    this.from = process.env.MAIL_FROM ?? gmailUser ?? "no-reply@tuescuela.com";
     this.bccAdmin = process.env.MAIL_BCC_ADMIN;
-    if (!apiKey) {
-      this.logger.warn("RESEND_API_KEY no configurado: los correos se registrarán en consola, no se enviarán.");
+    if (!this.transporter) {
+      this.logger.warn("GMAIL_USER/GMAIL_APP_PASSWORD no configurados: los correos se registrarán en consola, no se enviarán.");
     }
   }
 
   // `to` va al alumno (destinatario principal); `cc` es todo lo demás —
   // instructor, supervisor(es) de la sucursal y el BCC_ADMIN fijo si está
-  // configurado. Filtra vacíos/duplicados para no reventar la llamada a Resend.
+  // configurado. Filtra vacíos/duplicados para no reventar el envío.
   private async send(to: string, cc: (string | undefined | null)[], subject: string, html: string) {
     const ccList = Array.from(new Set([...cc, this.bccAdmin].filter((e): e is string => !!e && e !== to)));
-    if (!this.resend) {
+    if (!this.transporter) {
       this.logger.log(`[correo simulado] Para: ${to} | Cc: ${ccList.join(", ") || "(ninguno)"} | Asunto: ${subject}`);
       return { simulated: true };
     }
-    return this.resend.emails.send({
+    return this.transporter.sendMail({
       from: this.from,
       to,
       cc: ccList.length ? ccList : undefined,

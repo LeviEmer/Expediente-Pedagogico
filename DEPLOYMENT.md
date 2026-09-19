@@ -18,7 +18,7 @@ Todas las cuentas deben crearse **a nombre del dueño de la escuela** (su correo
 3. Completar las variables de entorno marcadas como `sync: false` en el dashboard de Render:
    - `DATABASE_URL` → la cadena de Supabase del paso 1.
    - `JWT_SECRET` → una cadena aleatoria larga (por ejemplo, generarla con `openssl rand -base64 32`).
-   - `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_BCC_ADMIN` → credenciales de [resend.com](https://resend.com) (plan free) para el envío de reportes por correo.
+   - `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `MAIL_FROM`, `MAIL_BCC_ADMIN` → envío de reportes por correo vía Gmail SMTP (Nodemailer). `GMAIL_APP_PASSWORD` se genera en [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) (requiere verificación en 2 pasos activada en esa cuenta de Gmail).
    - `FRONTEND_URL` → se completa después del paso 3, con la URL que dé Vercel.
 4. Al desplegar, correr el seed una sola vez desde la shell de Render (**Shell** tab del servicio): `pnpm --filter backend prisma:seed`.
 5. Anotar la URL pública que asigna Render (algo como `https://expediente-pedagogico-api.onrender.com`).

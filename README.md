@@ -2,7 +2,7 @@
 
 Sistema de gestión de clases para una escuela de manejo (MVP). Monorepo pnpm con:
 
-- `backend` — NestJS + Prisma (PostgreSQL/Supabase), auth JWT, correo con Resend.
+- `backend` — NestJS + Prisma (PostgreSQL/Supabase), auth JWT, correo vía Gmail SMTP (Nodemailer).
 - `frontend` — Next.js (App Router) + Tailwind.
 
 ## Requisitos
@@ -17,7 +17,7 @@ Sistema de gestión de clases para una escuela de manejo (MVP). Monorepo pnpm co
 pnpm install
 ```
 
-1. Copia `backend/.env.example` a `backend/.env` y completa `DATABASE_URL`, `JWT_SECRET` y (opcional en desarrollo) `RESEND_API_KEY`. Sin `RESEND_API_KEY`, los correos solo se registran en la consola del API en vez de enviarse.
+1. Copia `backend/.env.example` a `backend/.env` y completa `DATABASE_URL`, `JWT_SECRET` y (opcional en desarrollo) `GMAIL_USER`/`GMAIL_APP_PASSWORD`. Sin esas dos, los correos solo se registran en la consola del API en vez de enviarse.
 2. Copia `frontend/.env.example` a `frontend/.env.local` (el valor por defecto ya apunta a `http://localhost:3001/api`).
 
 ```bash
