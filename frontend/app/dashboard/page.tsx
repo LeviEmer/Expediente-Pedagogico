@@ -67,7 +67,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div>
+    <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-5xl px-4 py-8">
         <PageHeader

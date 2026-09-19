@@ -52,7 +52,7 @@ export default function GeneralEvaluationPage() {
   }
 
   return (
-    <div>
+    <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-2xl px-4 py-8">
         <PageHeader

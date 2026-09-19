@@ -85,7 +85,7 @@ export default function EnrollmentHistoryPage() {
   }
 
   return (
-    <div>
+    <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-8">
         <PageHeader

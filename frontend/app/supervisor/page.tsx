@@ -183,7 +183,7 @@ export default function SupervisorPage() {
   const editInputClass = "rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
 
   return (
-    <div>
+    <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
         <PageHeader eyebrow="Panel de supervisor" title="Todo tu equipo, en un solo lugar" />

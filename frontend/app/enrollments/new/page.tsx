@@ -89,7 +89,7 @@ export default function NewEnrollmentPage() {
   }
 
   return (
-    <div>
+    <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-2xl px-4 py-8">
         <PageHeader eyebrow="Nueva matrícula" title="Matricular un alumno" subtitle="Completa los datos para empezar a darle clases." />

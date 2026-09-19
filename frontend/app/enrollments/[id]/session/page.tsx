@@ -170,7 +170,7 @@ export default function ClassSessionPage() {
   };
 
   return (
-    <div>
+    <div className="md:pl-60">
       <NavBar />
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-1 flex items-center gap-2">
