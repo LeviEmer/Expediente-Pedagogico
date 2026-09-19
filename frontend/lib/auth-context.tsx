@@ -12,13 +12,17 @@ type AuthUser = {
   // null para ADMIN/GENERAL_SUPERVISOR: ven ambas sucursales, no pertenecen a una sola.
   branchId: string | null;
   branchName: string | null;
+  // true justo después de crear la cuenta o de un reseteo hecho por otra
+  // persona — la pantalla raíz manda a /change-password hasta que se ponga en false.
+  mustChangePassword: boolean;
 };
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
+  markPasswordChanged: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", res.accessToken);
     localStorage.setItem("user", JSON.stringify(res.user));
     setUser(res.user);
+    return res.user;
   }
 
   function logout() {
@@ -48,7 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  function markPasswordChanged() {
+    setUser((u) => {
+      if (!u) return u;
+      const next = { ...u, mustChangePassword: false };
+      localStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  }
+
+  return <AuthContext.Provider value={{ user, loading, login, logout, markPasswordChanged }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

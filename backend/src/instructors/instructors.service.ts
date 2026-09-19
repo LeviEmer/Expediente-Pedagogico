@@ -15,7 +15,7 @@ export class InstructorsService {
     if (dto.password) {
       const passwordHash = await bcrypt.hash(dto.password, 10);
       const authUser = await this.prisma.user.create({
-        data: { email: dto.email, passwordHash, role: "INSTRUCTOR", branchId },
+        data: { email: dto.email, passwordHash, role: "INSTRUCTOR", branchId, mustChangePassword: true },
       });
       return this.prisma.instructor.create({
         data: {

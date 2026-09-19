@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Button, TextField } from "@/components/ui";
+import { Button, TextField, PasswordField } from "@/components/ui";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -20,8 +21,8 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      await login(email, password);
-      router.push("/");
+      const user = await login(email, password);
+      router.push(user.mustChangePassword ? "/change-password" : "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");
     } finally {
@@ -49,11 +50,17 @@ export default function LoginPage() {
         )}
 
         <TextField label="Correo" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        <TextField label="Contraseña" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordField label="Contraseña" required value={password} onChange={(e) => setPassword(e.target.value)} />
 
         <Button type="submit" busy={busy} className="w-full">
           {busy ? "Ingresando..." : "Ingresar"}
         </Button>
+
+        <p className="text-center text-sm">
+          <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-700">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
       </form>
     </div>
   );

@@ -28,6 +28,19 @@ function baseLayout(title: string, body: string): string {
   </div>`;
 }
 
+export function passwordResetHtml(params: { resetUrl: string }): string {
+  const body = `
+    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+    <p>
+      <a href="${esc(params.resetUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:bold;">
+        Restablecer contraseña
+      </a>
+    </p>
+    <p style="font-size:13px;color:#6b7280;">Este enlace vence en 1 hora. Si tú no lo pediste, ignora este correo — tu contraseña actual sigue funcionando.</p>
+  `;
+  return baseLayout("Restablecer contraseña", body);
+}
+
 type CriteriaSnapshotItem = { text: string; rating: string | null };
 type RubricSnapshotItem = { name: string; level: number | null };
 

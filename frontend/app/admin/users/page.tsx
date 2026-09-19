@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, KeyRound, Power, Search, UserPlus, Users } from "lucide-react";
 import { api, AdminUser, Branch } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { BackLink, Badge, Button, EmptyState, PageHeader, TextField } from "@/components/ui";
+import { BackLink, Badge, Button, EmptyState, PageHeader, PasswordInput, TextField } from "@/components/ui";
+
+// Contraseña desechable: se asigna por defecto a las cuentas nuevas y a los
+// reseteos hechos por el admin — el propio usuario la cambia en su próximo
+// login porque `mustChangePassword` queda en true (ver users.service.ts).
+const DEFAULT_PASSWORD = "escuelaorellana";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrador",
@@ -25,10 +30,6 @@ function displayName(u: AdminUser) {
   return null;
 }
 
-function randomPassword() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -37,7 +38,7 @@ export default function AdminUsersPage() {
 
   const [newUser, setNewUser] = useState({
     email: "",
-    password: "",
+    password: DEFAULT_PASSWORD,
     role: "SUPERVISOR" as "SUPERVISOR" | "GENERAL_SUPERVISOR",
     branchId: "",
   });
@@ -72,7 +73,7 @@ export default function AdminUsersPage() {
         role: newUser.role,
         branchId: newUser.role === "SUPERVISOR" ? newUser.branchId : undefined,
       });
-      setNewUser({ email: "", password: "", role: "SUPERVISOR", branchId: "" });
+      setNewUser({ email: "", password: DEFAULT_PASSWORD, role: "SUPERVISOR", branchId: "" });
       setStatus("Cuenta creada.");
       reload();
     } catch (err) {
@@ -92,7 +93,7 @@ export default function AdminUsersPage() {
 
   function startReset(u: AdminUser) {
     setResetTargetId(u.id);
-    setResetValue(randomPassword());
+    setResetValue(DEFAULT_PASSWORD);
     setStatus(null);
   }
 
@@ -138,7 +139,9 @@ export default function AdminUsersPage() {
             Crear supervisor o supervisor general
           </h2>
           <p className="mb-3 text-xs text-gray-500">
-            Los instructores no se crean aquí — cada supervisor los da de alta desde su Panel supervisor.
+            Los instructores no se crean aquí — cada supervisor los da de alta desde su Panel supervisor. La
+            contraseña queda por defecto en <span className="font-mono">{DEFAULT_PASSWORD}</span>; al usuario se le
+            pedirá cambiarla en su primer inicio de sesión.
           </p>
           <form onSubmit={createUser} className="flex flex-wrap gap-2">
             <input
@@ -149,7 +152,7 @@ export default function AdminUsersPage() {
               onChange={(e) => setNewUser((s) => ({ ...s, email: e.target.value }))}
               className={editInputClass}
             />
-            <input
+            <PasswordInput
               placeholder="Contraseña"
               required
               minLength={6}
@@ -235,7 +238,7 @@ export default function AdminUsersPage() {
 
                   {resetTargetId === u.id && (
                     <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 p-2.5">
-                      <input
+                      <PasswordInput
                         value={resetValue}
                         onChange={(e) => setResetValue(e.target.value)}
                         className={editInputClass}
@@ -243,10 +246,10 @@ export default function AdminUsersPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => setResetValue(randomPassword())}
+                        onClick={() => setResetValue(DEFAULT_PASSWORD)}
                         className="text-xs font-medium text-blue-700 hover:underline"
                       >
-                        Generar otra
+                        Usar contraseña por defecto
                       </button>
                       <Button variant="primary" onClick={() => confirmReset(u)} className="ml-auto">
                         Guardar nueva contraseña

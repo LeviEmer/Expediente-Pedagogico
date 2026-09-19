@@ -39,6 +39,14 @@ model User {
   passwordHash String
   role         UserRole
   active       Boolean     @default(true)
+  // true cuando la contraseña la puso otra persona (creación de cuenta con
+  // la contraseña por defecto, o un reseteo hecho por el admin) — obliga a
+  // cambiarla en el primer login antes de dejar usar el resto de la app.
+  mustChangePassword Boolean @default(false)
+  // "Olvidé mi contraseña": hash del token (nunca el token en claro) +
+  // vencimiento; null cuando no hay una solicitud de reseteo pendiente.
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
   // Sucursal del usuario: para SUPERVISOR delimita qué ve; para INSTRUCTOR se
   // mantiene igual a la de su registro Instructor (fuente de verdad operativa).
   branchId     String?

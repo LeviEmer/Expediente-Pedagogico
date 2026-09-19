@@ -11,6 +11,7 @@ export default function HomePage() {
   useEffect(() => {
     if (loading) return;
     if (!user) router.replace("/login");
+    else if (user.mustChangePassword) router.replace("/change-password");
     else if (user.role === "ADMIN") router.replace("/admin");
     else if (user.role === "SUPERVISOR" || user.role === "GENERAL_SUPERVISOR") router.replace("/supervisor");
     else router.replace("/dashboard");

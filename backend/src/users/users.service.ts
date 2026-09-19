@@ -34,7 +34,7 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     return this.prisma.user.create({
-      data: { email: dto.email, passwordHash, role: dto.role, branchId },
+      data: { email: dto.email, passwordHash, role: dto.role, branchId, mustChangePassword: true },
       include: { branch: true },
     });
   }
@@ -49,6 +49,9 @@ export class UsersService {
       data: {
         active: dto.active,
         passwordHash: dto.password ? await bcrypt.hash(dto.password, 10) : undefined,
+        // La puso el admin, no la persona dueña de la cuenta — que la
+        // cambie ella misma en el próximo login.
+        mustChangePassword: dto.password ? true : undefined,
       },
       include: { branch: true },
     });

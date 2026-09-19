@@ -15,8 +15,12 @@ import {
 } from "lucide-react";
 import { api, Branch, CourseType, Enrollment, Instructor, Student } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, Button, cx, EmptyState, PageHeader, TextField } from "@/components/ui";
+import { Badge, Button, cx, EmptyState, PageHeader, PasswordInput, TextField } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+
+// Contraseña desechable por defecto para instructores nuevos con acceso —
+// el propio instructor la cambia en su primer login (mustChangePassword).
+const DEFAULT_PASSWORD = "escuelaorellana";
 
 function matches(query: string, ...fields: (string | undefined | null)[]) {
   if (!query.trim()) return true;
@@ -63,7 +67,13 @@ export default function SupervisorPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
 
-  const [newInstructor, setNewInstructor] = useState({ firstName: "", lastName: "", email: "", password: "", branchId: "" });
+  const [newInstructor, setNewInstructor] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: DEFAULT_PASSWORD,
+    branchId: "",
+  });
   const [status, setStatus] = useState<string | null>(null);
 
   const [instructorQuery, setInstructorQuery] = useState("");
@@ -122,7 +132,7 @@ export default function SupervisorPage() {
         password: newInstructor.password || undefined,
         branchId: newInstructor.branchId || undefined,
       });
-      setNewInstructor({ firstName: "", lastName: "", email: "", password: "", branchId: "" });
+      setNewInstructor({ firstName: "", lastName: "", email: "", password: DEFAULT_PASSWORD, branchId: "" });
       setStatus("Instructor creado.");
       reload();
     } catch (err) {
@@ -241,7 +251,7 @@ export default function SupervisorPage() {
                 onChange={(e) => setNewInstructor((s) => ({ ...s, email: e.target.value }))}
                 className={editInputClass}
               />
-              <input
+              <PasswordInput
                 placeholder="Contraseña (opcional, crea acceso)"
                 value={newInstructor.password}
                 onChange={(e) => setNewInstructor((s) => ({ ...s, password: e.target.value }))}

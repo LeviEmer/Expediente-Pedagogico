@@ -1,6 +1,6 @@
-import { ButtonHTMLAttributes, ReactNode } from "react";
+import { ButtonHTMLAttributes, ReactNode, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, LucideIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LucideIcon, Loader2 } from "lucide-react";
 
 export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -272,5 +272,59 @@ export function TextField({
         )}
       />
     </label>
+  );
+}
+
+// ---------- Contraseña (con ojo para mostrar/ocultar) ----------
+
+export function PasswordField({
+  label,
+  className,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & { label?: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <label className="block text-sm">
+      {label && <span className="mb-1 block font-medium text-gray-700">{label}</span>}
+      <span className="relative block">
+        <input
+          {...props}
+          type={visible ? "text" : "password"}
+          className={cx(
+            "w-full rounded-lg border border-gray-200 px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100",
+            className,
+          )}
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setVisible((v) => !v)}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+        >
+          {visible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+        </button>
+      </span>
+    </label>
+  );
+}
+
+// Variante compacta sin <label>, para los formularios en línea que ya usan
+// su propio className de input (paneles de supervisor/admin).
+export function PasswordInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="relative inline-block">
+      <input {...props} type={visible ? "text" : "password"} className={cx("pr-9", className)} />
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => setVisible((v) => !v)}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+      >
+        {visible ? <EyeOff className="h-3.5 w-3.5" aria-hidden="true" /> : <Eye className="h-3.5 w-3.5" aria-hidden="true" />}
+      </button>
+    </span>
   );
 }

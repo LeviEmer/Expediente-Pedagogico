@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
 import * as path from "path";
-import { dailyReportHtml, finalReportSummaryHtml, SCHOOL_NAME } from "./templates";
+import { dailyReportHtml, finalReportSummaryHtml, passwordResetHtml, SCHOOL_NAME } from "./templates";
 import { buildFinalReportPdf, FinalReportPdfParams } from "./final-report-pdf";
 
 // Ver nota en final-report-pdf.ts sobre por qué esta ruta usa cwd en vez de __dirname.
@@ -43,8 +43,11 @@ export class MailService {
     subject: string,
     html: string,
     extraAttachments: { filename: string; content: Buffer }[] = [],
+    includeBccAdmin = true,
   ) {
-    const ccList = Array.from(new Set([...cc, this.bccAdmin].filter((e): e is string => !!e && e !== to)));
+    const ccList = Array.from(
+      new Set([...cc, includeBccAdmin ? this.bccAdmin : undefined].filter((e): e is string => !!e && e !== to)),
+    );
     const attachments = [...(LOGO_ATTACHMENT ?? []), ...extraAttachments];
     if (!this.transporter) {
       this.logger.log(
@@ -83,5 +86,12 @@ export class MailService {
       html,
       [{ filename: fileName, content: pdf }],
     );
+  }
+
+  // Sin BCC_ADMIN a propósito: es un correo de seguridad con un enlace de
+  // acceso, no un reporte para el equipo.
+  async sendPasswordReset(params: { to: string; resetUrl: string }) {
+    const html = passwordResetHtml({ resetUrl: params.resetUrl });
+    return this.send(params.to, [], `${SCHOOL_NAME} — Restablecer contraseña`, html, [], false);
   }
 }
