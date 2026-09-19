@@ -1,5 +1,12 @@
 import PDFDocument from "pdfkit";
+import * as path from "path";
 import { SCHOOL_NAME } from "./templates";
+
+// Basado en cwd (= backend/, tanto en dev como en producción vía
+// `pnpm --filter backend ...`) y no en __dirname: en modo watch, Nest
+// compila a dist/src/mail/... en vez de dist/mail/... como `nest build`,
+// así que una ruta relativa al archivo compilado no es estable entre los dos.
+const LOGO_PATH = path.join(process.cwd(), "src", "mail", "assets", "logo.jpg");
 
 const COLORS = {
   blue: "#2563eb",
@@ -61,13 +68,23 @@ export function buildFinalReportPdf(params: FinalReportPdfParams): Promise<Buffe
 
     // ---- Encabezado con marca ----
     doc.rect(0, 0, PAGE_WIDTH, 92).fill(COLORS.blueDark);
+
+    const logoSize = 56;
+    const logoX = MARGIN;
+    const logoY = 18;
+    doc.save();
+    doc.roundedRect(logoX, logoY, logoSize, logoSize, 8).clip();
+    doc.image(LOGO_PATH, logoX, logoY, { width: logoSize, height: logoSize });
+    doc.restore();
+
+    const textX = logoX + logoSize + 14;
     doc
       .fillColor("#ffffff")
       .font("Helvetica-Bold")
       .fontSize(15)
-      .text(SCHOOL_NAME.toUpperCase(), MARGIN, 24, { characterSpacing: 0.5 });
-    doc.fontSize(11).font("Helvetica").text("Expediente Pedagógico", MARGIN, 43);
-    doc.font("Helvetica-Bold").fontSize(16).text("Reporte general final", MARGIN, 60);
+      .text(SCHOOL_NAME.toUpperCase(), textX, 24, { characterSpacing: 0.5 });
+    doc.fontSize(11).font("Helvetica").text("Expediente Pedagógico", textX, 43);
+    doc.font("Helvetica-Bold").fontSize(16).text("Reporte general final", textX, 60);
     doc.y = 112;
 
     // ---- Tarjeta de datos del alumno ----

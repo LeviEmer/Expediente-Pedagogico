@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Building2, GraduationCap, LayoutDashboard, LogOut, Shield, UserPlus, Users } from "lucide-react";
+import { Building2, LayoutDashboard, LogOut, Shield, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "@/components/ui";
 
@@ -29,8 +30,8 @@ export function NavBar() {
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-gray-900">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <GraduationCap className="h-4 w-4" aria-hidden="true" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-gray-200">
+            <Image src="/logo.jpg" alt="" width={36} height={36} className="h-full w-full object-cover" priority />
           </span>
           <span className="leading-tight">
             <span className="block whitespace-nowrap text-[10px] font-semibold uppercase tracking-wide text-blue-600">

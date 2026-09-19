@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { GraduationCap, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button, TextField } from "@/components/ui";
 
@@ -32,8 +33,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50/60 to-slate-50 px-4">
       <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg shadow-gray-200/50">
         <div className="flex flex-col items-center text-center">
-          <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <GraduationCap className="h-6 w-6" aria-hidden="true" />
+          <span className="mb-3 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-gray-200">
+            <Image src="/logo.jpg" alt="" width={64} height={64} className="h-full w-full object-cover" priority />
           </span>
           <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Escuela de Manejo Orellana</p>
           <h1 className="text-xl font-semibold text-gray-900">Expediente Pedagógico</h1>

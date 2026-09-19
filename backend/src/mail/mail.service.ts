@@ -1,7 +1,16 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
+import * as path from "path";
 import { dailyReportHtml, finalReportSummaryHtml, SCHOOL_NAME } from "./templates";
 import { buildFinalReportPdf, FinalReportPdfParams } from "./final-report-pdf";
+
+// Ver nota en final-report-pdf.ts sobre por qué esta ruta usa cwd en vez de __dirname.
+const LOGO_PATH = path.join(process.cwd(), "src", "mail", "assets", "logo.jpg");
+// Referenciado como <img src="cid:school-logo"> en templates.ts — así se ve
+// el logo en el correo sin depender de una URL pública.
+const LOGO_ATTACHMENT: nodemailer.SendMailOptions["attachments"] = [
+  { filename: "logo.jpg", path: LOGO_PATH, cid: "school-logo" },
+];
 
 @Injectable()
 export class MailService {
@@ -33,13 +42,14 @@ export class MailService {
     cc: (string | undefined | null)[],
     subject: string,
     html: string,
-    attachments?: { filename: string; content: Buffer }[],
+    extraAttachments: { filename: string; content: Buffer }[] = [],
   ) {
     const ccList = Array.from(new Set([...cc, this.bccAdmin].filter((e): e is string => !!e && e !== to)));
+    const attachments = [...(LOGO_ATTACHMENT ?? []), ...extraAttachments];
     if (!this.transporter) {
       this.logger.log(
         `[correo simulado] Para: ${to} | Cc: ${ccList.join(", ") || "(ninguno)"} | Asunto: ${subject}${
-          attachments?.length ? ` | Adjuntos: ${attachments.map((a) => a.filename).join(", ")}` : ""
+          extraAttachments.length ? ` | Adjuntos: ${extraAttachments.map((a) => a.filename).join(", ")}` : ""
         }`,
       );
       return { simulated: true };

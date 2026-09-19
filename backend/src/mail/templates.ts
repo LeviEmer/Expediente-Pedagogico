@@ -14,9 +14,12 @@ function esc(value: unknown): string {
 function baseLayout(title: string, body: string): string {
   return `
   <div style="font-family: Arial, Helvetica, sans-serif; max-width: 680px; margin: 0 auto; color: #1f2933;">
-    <p style="margin: 0 0 4px 0; font-size: 11px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; color: #2563eb;">
-      ${esc(SCHOOL_NAME)}
-    </p>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+      <img src="cid:school-logo" alt="" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e5e7eb; display: block;" />
+      <p style="margin: 0; font-size: 11px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; color: #2563eb;">
+        ${esc(SCHOOL_NAME)}
+      </p>
+    </div>
     <h1 style="font-size: 20px; border-bottom: 2px solid #1f2933; padding-bottom: 8px;">${esc(title)}</h1>
     ${body}
     <p style="margin-top: 32px; font-size: 12px; color: #6b7280;">
