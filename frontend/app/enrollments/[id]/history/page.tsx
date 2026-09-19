@@ -7,7 +7,7 @@ import { CalendarDays, CheckCircle2, ClipboardCheck, Mail, MailWarning, PlayCirc
 import { useAuth } from "@/lib/auth-context";
 import { api, ClassSessionSummary, CriterionRating, Enrollment, EnrollmentLessonProgress } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, Card, cx, EmptyState, LinkButton, LoadingRow, PageHeader } from "@/components/ui";
+import { Badge, Card, ConfirmDialog, cx, EmptyState, LinkButton, LoadingRow, PageHeader } from "@/components/ui";
 
 const RATING_LABEL: Record<CriterionRating, string> = { NO: "No", MEDIO: "Medio", SI: "Sí", NA: "No aplica" };
 const RATING_DOT: Record<CriterionRating, string> = {
@@ -27,6 +27,8 @@ export default function EnrollmentHistoryPage() {
   const [busySessionId, setBusySessionId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reopenTarget, setReopenTarget] = useState<string | null>(null);
+  const isSupervisorLike = user?.role === "SUPERVISOR" || user?.role === "ADMIN";
 
   function reload() {
     if (!enrollmentId) return;
@@ -57,7 +59,6 @@ export default function EnrollmentHistoryPage() {
   }
 
   async function reopenSession(sessionId: string) {
-    if (!window.confirm("¿Reabrir esta sesión cerrada para editarla?")) return;
     setBusySessionId(sessionId);
     setNotice(null);
     try {
@@ -68,6 +69,7 @@ export default function EnrollmentHistoryPage() {
       setNotice(err instanceof Error ? err.message : "Error al reabrir la sesión");
     } finally {
       setBusySessionId(null);
+      setReopenTarget(null);
     }
   }
 
@@ -119,7 +121,7 @@ export default function EnrollmentHistoryPage() {
           </p>
         )}
 
-        {user?.role === "SUPERVISOR" && enrollment?.status === "FINALIZADO" && (
+        {isSupervisorLike && enrollment?.status === "FINALIZADO" && (
           <div
             className={cx(
               "mb-4 flex flex-col gap-1 rounded-lg border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3",
@@ -228,9 +230,9 @@ export default function EnrollmentHistoryPage() {
                         >
                           Reenviar
                         </button>
-                        {user?.role === "SUPERVISOR" && (
+                        {isSupervisorLike && (
                           <button
-                            onClick={() => reopenSession(s.id)}
+                            onClick={() => setReopenTarget(s.id)}
                             disabled={busySessionId === s.id}
                             className="text-xs font-medium text-gray-500 hover:underline disabled:opacity-50"
                           >
@@ -284,6 +286,16 @@ export default function EnrollmentHistoryPage() {
             ))}
           </div>
         )}
+
+        <ConfirmDialog
+          open={!!reopenTarget}
+          title="¿Reabrir esta sesión?"
+          description="Quedará editable de nuevo para el instructor."
+          confirmLabel="Reabrir"
+          busy={!!reopenTarget && busySessionId === reopenTarget}
+          onConfirm={() => reopenTarget && reopenSession(reopenTarget)}
+          onCancel={() => setReopenTarget(null)}
+        />
       </main>
     </div>
   );

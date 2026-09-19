@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Check, CheckCircle2, RotateCcw, Save, Send, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api, CriterionRating, Enrollment, EnrollmentLessonProgress, Lesson } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Button } from "@/components/ui";
+import { Button, ConfirmDialog } from "@/components/ui";
 
 type LessonFormState = {
   criteria: Record<string, CriterionRating>;
@@ -24,6 +24,7 @@ const RATING_OPTIONS: { value: CriterionRating; label: string }[] = [
 export default function ClassSessionPage() {
   const { id: enrollmentId } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [progress, setProgress] = useState<EnrollmentLessonProgress[]>([]);
@@ -32,6 +33,7 @@ export default function ClassSessionPage() {
   const [form, setForm] = useState<Record<string, LessonFormState>>({});
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   // El currículo de esta matrícula ya viene filtrado por transmisión desde el
   // backend (R1): en automático no incluye L00-L04. No se vuelve a pedir el
@@ -144,18 +146,15 @@ export default function ClassSessionPage() {
 
   async function closeAndSend() {
     if (!sessionId) return;
-    if (!window.confirm("¿Cerrar la clase de hoy y enviar el reporte al alumno? Ya no podrás editarla después.")) {
-      return;
-    }
     setBusy(true);
     setStatus(null);
     try {
       await api.patch(`/class-sessions/${sessionId}/lessons`, { lessons: payload });
       await api.post(`/class-sessions/${sessionId}/close`);
-      setStatus("Clase cerrada y reporte enviado al alumno.");
+      router.push(`/enrollments/${enrollmentId}/history`);
     } catch (err) {
+      setConfirmClose(false);
       setStatus(err instanceof Error ? err.message : "Error al cerrar la clase");
-    } finally {
       setBusy(false);
     }
   }
@@ -347,11 +346,21 @@ export default function ClassSessionPage() {
             <Button variant="secondary" icon={Save} onClick={saveProgress} busy={busy} fullWidthOnMobile>
               Guardar avance
             </Button>
-            <Button variant="primary" icon={Send} onClick={closeAndSend} busy={busy} fullWidthOnMobile>
+            <Button variant="primary" icon={Send} onClick={() => setConfirmClose(true)} busy={busy} fullWidthOnMobile>
               Cerrar y enviar reporte
             </Button>
           </div>
         )}
+
+        <ConfirmDialog
+          open={confirmClose}
+          title="¿Cerrar la clase de hoy?"
+          description="Se enviará el reporte al alumno y ya no podrás editar esta clase después."
+          confirmLabel="Cerrar y enviar"
+          busy={busy}
+          onConfirm={closeAndSend}
+          onCancel={() => setConfirmClose(false)}
+        />
       </main>
     </div>
   );
