@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
-import { dailyReportHtml, finalReportHtml } from "./templates";
+import { dailyReportHtml, finalReportSummaryHtml } from "./templates";
+import { buildFinalReportPdf, FinalReportPdfParams } from "./final-report-pdf";
 
 @Injectable()
 export class MailService {
@@ -26,10 +27,20 @@ export class MailService {
   // `to` va al alumno (destinatario principal); `cc` es todo lo demás —
   // instructor, supervisor(es) de la sucursal y el BCC_ADMIN fijo si está
   // configurado. Filtra vacíos/duplicados para no reventar el envío.
-  private async send(to: string, cc: (string | undefined | null)[], subject: string, html: string) {
+  private async send(
+    to: string,
+    cc: (string | undefined | null)[],
+    subject: string,
+    html: string,
+    attachments?: { filename: string; content: Buffer }[],
+  ) {
     const ccList = Array.from(new Set([...cc, this.bccAdmin].filter((e): e is string => !!e && e !== to)));
     if (!this.transporter) {
-      this.logger.log(`[correo simulado] Para: ${to} | Cc: ${ccList.join(", ") || "(ninguno)"} | Asunto: ${subject}`);
+      this.logger.log(
+        `[correo simulado] Para: ${to} | Cc: ${ccList.join(", ") || "(ninguno)"} | Asunto: ${subject}${
+          attachments?.length ? ` | Adjuntos: ${attachments.map((a) => a.filename).join(", ")}` : ""
+        }`,
+      );
       return { simulated: true };
     }
     return this.transporter.sendMail({
@@ -38,6 +49,7 @@ export class MailService {
       cc: ccList.length ? ccList : undefined,
       subject,
       html,
+      attachments,
     });
   }
 
@@ -49,10 +61,12 @@ export class MailService {
     return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte de clase — ${dateStr}`, html);
   }
 
-  async sendFinalReport(
-    params: Parameters<typeof finalReportHtml>[0] & { studentEmail: string; ccEmails?: (string | undefined | null)[] },
-  ) {
-    const html = finalReportHtml(params);
-    return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte general final — ${params.courseTypeName}`, html);
+  async sendFinalReport(params: FinalReportPdfParams & { studentEmail: string; ccEmails?: (string | undefined | null)[] }) {
+    const html = finalReportSummaryHtml(params);
+    const pdf = await buildFinalReportPdf(params);
+    const fileName = `reporte-final-${params.studentName.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}.pdf`;
+    return this.send(params.studentEmail, params.ccEmails ?? [], `Reporte general final — ${params.courseTypeName}`, html, [
+      { filename: fileName, content: pdf },
+    ]);
   }
 }

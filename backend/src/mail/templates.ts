@@ -97,19 +97,15 @@ export function dailyReportHtml(params: {
   return baseLayout("Reporte de clase diaria", body);
 }
 
-export function finalReportHtml(params: {
+// Cuerpo corto del correo final — el detalle completo de las 16 lecciones va
+// en el PDF adjunto (ver final-report-pdf.ts), para no mandar un correo
+// gigante con todos los criterios y rúbricas del curso.
+export function finalReportSummaryHtml(params: {
   studentName: string;
   courseTypeName: string;
   startDate: Date;
   endDate: Date;
   sessionsCount: number;
-  lessons: Array<{
-    lessonCode: string;
-    lessonName: string;
-    completedOn: Date | null;
-    criteriaResults: CriteriaSnapshotItem[];
-    rubricScores: RubricSnapshotItem[];
-  }>;
   generalEvaluation: {
     scores: Array<{ dimensionName: string; level: number | null }>;
     personalObservations: string | null;
@@ -117,22 +113,9 @@ export function finalReportHtml(params: {
 }): string {
   const fmt = (d: Date | null) => (d ? d.toLocaleDateString("es-CR", { year: "numeric", month: "long", day: "numeric" }) : "—");
 
-  const lessonsHtml = params.lessons
-    .map(
-      (l) => `
-      <div style="margin-top:16px;padding:12px;border:1px solid #e5e7eb;border-radius:8px;">
-        <h3 style="margin:0 0 4px 0;font-size:15px;">${esc(l.lessonCode)} — ${esc(l.lessonName)}
-          <span style="font-size:11px;color:#6b7280;">(completada: ${fmt(l.completedOn)})</span>
-        </h3>
-        ${criteriaTable(l.criteriaResults)}
-        ${l.rubricScores?.length ? `<ul style="margin:8px 0 0 0;padding-left:18px;font-size:13px;">${rubricList(l.rubricScores)}</ul>` : ""}
-      </div>`,
-    )
-    .join("");
-
   const evalHtml = params.generalEvaluation
     ? `
-      <h2 style="font-size:16px;margin-top:28px;">Evaluación general</h2>
+      <h2 style="font-size:16px;margin-top:24px;">Evaluación general</h2>
       <ul style="font-size:14px;">
         ${params.generalEvaluation.scores.map((s) => `<li><strong>${esc(s.dimensionName)}:</strong> Nivel ${esc(s.level ?? "—")}/4</li>`).join("")}
       </ul>
@@ -144,10 +127,10 @@ export function finalReportHtml(params: {
     <p>Estimado(a) <strong>${esc(params.studentName)}</strong>,</p>
     <p>Ha finalizado el curso de <strong>${esc(params.courseTypeName)}</strong>, iniciado el ${esc(fmt(params.startDate))} y finalizado el ${esc(fmt(params.endDate))}.
     Total de sesiones de clase: <strong>${esc(params.sessionsCount)}</strong>.</p>
-    <h2 style="font-size:16px;margin-top:24px;">Historial completo de lecciones</h2>
-    ${lessonsHtml}
     ${evalHtml}
+    <p>Adjunto a este correo encontrarás el <strong>PDF con el detalle completo</strong> de las 16 lecciones del curso.</p>
   `;
 
   return baseLayout("Reporte general final", body);
 }
+
