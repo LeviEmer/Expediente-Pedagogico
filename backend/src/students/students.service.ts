@@ -40,4 +40,48 @@ export class StudentsService {
     }
     return student;
   }
+
+  // Borrado permanente — el alumno, sus matrículas y todo lo capturado en
+  // ellas (lecciones, evaluación general, clases). No hay vuelta atrás; la
+  // UI ya advierte de esto antes de llamar aquí. Solo ADMIN/SUPERVISOR
+  // (ver @Roles en el controller); SUPERVISOR queda limitado a su sucursal
+  // por el chequeo de abajo, igual que el resto de endpoints de alumnos.
+  async remove(id: string, user: AuthenticatedUser) {
+    await this.findOne(id, user);
+
+    await this.prisma.$transaction(async (tx) => {
+      const enrollments = await tx.enrollment.findMany({ where: { studentId: id }, select: { id: true } });
+      const enrollmentIds = enrollments.map((e) => e.id);
+
+      const classSessions = await tx.classSession.findMany({
+        where: { enrollmentId: { in: enrollmentIds } },
+        select: { id: true },
+      });
+      const classSessionIds = classSessions.map((c) => c.id);
+      await tx.classSessionLesson.deleteMany({ where: { classSessionId: { in: classSessionIds } } });
+      await tx.classSession.deleteMany({ where: { enrollmentId: { in: enrollmentIds } } });
+
+      const enrollmentLessons = await tx.enrollmentLesson.findMany({
+        where: { enrollmentId: { in: enrollmentIds } },
+        select: { id: true },
+      });
+      const enrollmentLessonIds = enrollmentLessons.map((l) => l.id);
+      await tx.enrollmentLessonCriterion.deleteMany({ where: { enrollmentLessonId: { in: enrollmentLessonIds } } });
+      await tx.enrollmentLessonRubricScore.deleteMany({ where: { enrollmentLessonId: { in: enrollmentLessonIds } } });
+      await tx.enrollmentLesson.deleteMany({ where: { enrollmentId: { in: enrollmentIds } } });
+
+      const evaluations = await tx.enrollmentGeneralEvaluation.findMany({
+        where: { enrollmentId: { in: enrollmentIds } },
+        select: { id: true },
+      });
+      const evaluationIds = evaluations.map((e) => e.id);
+      await tx.enrollmentGeneralEvaluationScore.deleteMany({ where: { evaluationId: { in: evaluationIds } } });
+      await tx.enrollmentGeneralEvaluation.deleteMany({ where: { enrollmentId: { in: enrollmentIds } } });
+
+      await tx.enrollment.deleteMany({ where: { studentId: id } });
+      await tx.student.delete({ where: { id } });
+    });
+
+    return { ok: true };
+  }
 }

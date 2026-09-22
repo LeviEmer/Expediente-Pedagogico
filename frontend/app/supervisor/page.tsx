@@ -9,13 +9,14 @@ import {
   Pencil,
   Power,
   Search,
+  Trash2,
   UserCog,
   UserPlus,
   Users,
 } from "lucide-react";
 import { api, Branch, CourseType, Enrollment, Instructor, Student } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, Button, cx, EmptyState, PageHeader, PasswordInput, TextField } from "@/components/ui";
+import { Badge, Button, ConfirmDialog, cx, EmptyState, PageHeader, PasswordInput, TextField } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 // Contraseña desechable por defecto para instructores nuevos con acceso —
@@ -84,6 +85,8 @@ export default function SupervisorPage() {
   const [instructorEdit, setInstructorEdit] = useState({ firstName: "", lastName: "", email: "" });
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [studentEdit, setStudentEdit] = useState({ firstName: "", lastName: "", email: "", phone: "" });
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function reload() {
     api.get<Student[]>("/students").then(setStudents);
@@ -181,6 +184,22 @@ export default function SupervisorPage() {
       reload();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Error al actualizar alumno");
+    }
+  }
+
+  async function confirmDeleteStudent() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setStatus(null);
+    try {
+      await api.delete(`/students/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      setStatus("Alumno borrado permanentemente.");
+      reload();
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "Error al borrar alumno");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -426,6 +445,10 @@ export default function SupervisorPage() {
                             <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
                             Nueva matrícula
                           </Link>
+                          <button onClick={() => setDeleteTarget(s)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-red-50 hover:text-red-700">
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Borrar
+                          </button>
                         </div>
                       )}
                     </div>
@@ -436,6 +459,24 @@ export default function SupervisorPage() {
           )}
         </section>
       </main>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Borrar alumno permanentemente"
+        description={
+          deleteTarget && (
+            <>
+              Se borrará a <strong>{deleteTarget.firstName} {deleteTarget.lastName}</strong> junto con todas sus
+              matrículas, clases y evaluaciones. Esta acción no se puede deshacer.
+            </>
+          )
+        }
+        confirmLabel="Borrar"
+        variant="danger"
+        busy={deleting}
+        onConfirm={confirmDeleteStudent}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
