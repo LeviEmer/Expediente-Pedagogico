@@ -40,18 +40,16 @@ export default function LoginPage() {
   }
 
   async function onWebAuthnLogin() {
-    if (!email) {
-      setError("Escribe tu correo primero");
-      return;
-    }
     setError(null);
     setWebAuthnBusy(true);
     try {
-      const options = await api.post<PublicKeyCredentialRequestOptionsJSON>("/auth/webauthn/login-options", { email });
+      const { options, flowId } = await api.post<{ options: PublicKeyCredentialRequestOptionsJSON; flowId: string }>(
+        "/auth/webauthn/login-options",
+      );
       const authResponse: AuthenticationResponseJSON = await startAuthentication({ optionsJSON: options });
       const res = await api.post<{ accessToken: string; user: Parameters<typeof applySession>[1] }>(
         "/auth/webauthn/login-verify",
-        { email, response: authResponse },
+        { flowId, response: authResponse },
       );
       const user = applySession(res.accessToken, res.user);
       router.push(user.mustChangePassword ? "/change-password" : "/");

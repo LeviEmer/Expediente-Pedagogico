@@ -10,7 +10,6 @@ import { ChangePasswordDto } from "./dto/change-password.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { WebAuthnRegisterVerifyDto } from "./dto/webauthn-register-verify.dto";
-import { WebAuthnLoginOptionsDto } from "./dto/webauthn-login-options.dto";
 import { WebAuthnLoginVerifyDto } from "./dto/webauthn-login-verify.dto";
 
 @Controller("auth")
@@ -57,13 +56,13 @@ export class AuthController {
   }
 
   @Post("webauthn/login-options")
-  webauthnLoginOptions(@Body() dto: WebAuthnLoginOptionsDto) {
-    return this.webauthn.loginOptions(dto.email);
+  webauthnLoginOptions() {
+    return this.webauthn.loginOptions();
   }
 
   @Post("webauthn/login-verify")
   webauthnLoginVerify(@Body() dto: WebAuthnLoginVerifyDto) {
-    return this.webauthn.loginVerify(dto.email, dto.response as AuthenticationResponseJSON);
+    return this.webauthn.loginVerify(dto.flowId, dto.response as AuthenticationResponseJSON);
   }
 
   @Get("webauthn/credentials")

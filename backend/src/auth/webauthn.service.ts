@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { randomUUID } from "crypto";
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -93,38 +94,29 @@ export class WebauthnService {
     return { ok: true };
   }
 
-  async loginOptions(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email }, include: { webAuthnCredentials: true } });
-    // Mismo mensaje exista o no la cuenta / tenga o no huella registrada —
-    // no revelar información por esta vía, igual que "olvidé mi contraseña".
-    if (!user || !user.active || user.webAuthnCredentials.length === 0) {
-      throw new BadRequestException("No hay Face ID/huella configurada para esta cuenta en este correo");
-    }
+  // Flujo "descubrible" (sin escribir correo): el dispositivo mismo sabe
+  // qué llaves tiene guardadas y se lo dice al usuario en el propio picker
+  // de Face ID/huella — por eso no restringimos allowCredentials aquí.
+  async loginOptions() {
     const { rpID } = rpConfig();
-    const options = await generateAuthenticationOptions({
-      rpID,
-      allowCredentials: user.webAuthnCredentials.map((c) => ({
-        id: c.credentialId,
-        transports: c.transports ? (JSON.parse(c.transports) as string[]) : undefined,
-      })),
-      userVerification: "preferred",
-    });
-    this.setChallenge(this.loginChallenges, email, options.challenge);
-    return options;
+    const options = await generateAuthenticationOptions({ rpID, userVerification: "preferred" });
+    const flowId = randomUUID();
+    this.setChallenge(this.loginChallenges, flowId, options.challenge);
+    return { options, flowId };
   }
 
-  async loginVerify(email: string, response: AuthenticationResponseJSON) {
+  async loginVerify(flowId: string, response: AuthenticationResponseJSON) {
     const { rpID, origin } = rpConfig();
-    const expectedChallenge = this.takeChallenge(this.loginChallenges, email);
+    const expectedChallenge = this.takeChallenge(this.loginChallenges, flowId);
 
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      include: { webAuthnCredentials: true, instructor: true, branch: true },
+    const stored = await this.prisma.webAuthnCredential.findUnique({
+      where: { credentialId: response.id },
+      include: { user: { include: { instructor: true, branch: true } } },
     });
-    if (!user || !user.active) throw new UnauthorizedException("Credenciales inválidas");
-
-    const stored = user.webAuthnCredentials.find((c) => c.credentialId === response.id);
-    if (!stored) throw new UnauthorizedException("Este dispositivo no está registrado para esta cuenta");
+    if (!stored || !stored.user.active) {
+      throw new UnauthorizedException("Este dispositivo no está registrado para ninguna cuenta");
+    }
+    const user = stored.user;
 
     const verification = await verifyAuthenticationResponse({
       response,

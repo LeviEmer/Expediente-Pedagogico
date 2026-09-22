@@ -1,8 +1,8 @@
-import { IsEmail, IsObject } from "class-validator";
+import { IsObject, IsString } from "class-validator";
 
 export class WebAuthnLoginVerifyDto {
-  @IsEmail()
-  email: string;
+  @IsString()
+  flowId: string;
 
   @IsObject()
   response: object;
