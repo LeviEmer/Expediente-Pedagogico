@@ -53,6 +53,23 @@ model User {
   branch       Branch?     @relation(fields: [branchId], references: [id])
   createdAt    DateTime    @default(now())
   instructor   Instructor?
+  webAuthnCredentials WebAuthnCredential[]
+}
+
+// Face ID / huella (passkeys, WebAuthn) — alterno a la contraseña, no la
+// reemplaza. Cada dispositivo donde la persona lo active guarda su propia
+// fila; nunca se guarda ningún dato biométrico, solo la llave pública que
+// el teléfono genera.
+model WebAuthnCredential {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  transports   String?
+  deviceLabel  String?
+  createdAt    DateTime @default(now())
 }
 
 // ---------- Catálogo (currículo) ----------

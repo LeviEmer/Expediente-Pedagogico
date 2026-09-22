@@ -21,6 +21,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
+  applySession: (accessToken: string, user: AuthUser) => AuthUser;
   logout: () => void;
   markPasswordChanged: () => void;
 };
@@ -38,12 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  function applySession(accessToken: string, sessionUser: AuthUser) {
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("user", JSON.stringify(sessionUser));
+    setUser(sessionUser);
+    return sessionUser;
+  }
+
   async function login(email: string, password: string) {
     const res = await api.post<{ accessToken: string; user: AuthUser }>("/auth/login", { email, password });
-    localStorage.setItem("token", res.accessToken);
-    localStorage.setItem("user", JSON.stringify(res.user));
-    setUser(res.user);
-    return res.user;
+    return applySession(res.accessToken, res.user);
   }
 
   function logout() {
@@ -62,7 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, markPasswordChanged }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, login, applySession, logout, markPasswordChanged }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
