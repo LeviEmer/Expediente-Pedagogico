@@ -7,7 +7,8 @@ import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/brow
 import type { PublicKeyCredentialCreationOptionsJSON, RegistrationResponseJSON } from "@simplewebauthn/browser";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { Button, Card, PasswordField } from "@/components/ui";
+import { NavBar } from "@/components/NavBar";
+import { BackLink, Button, Card, PasswordField } from "@/components/ui";
 
 type WebAuthnCredentialSummary = { id: string; deviceLabel: string | null; createdAt: string };
 
@@ -25,6 +26,9 @@ function guessDeviceLabel() {
 export default function ChangePasswordPage() {
   const { user, markPasswordChanged, logout } = useAuth();
   const router = useRouter();
+  const wasForced = user?.mustChangePassword ?? false;
+
+  const [step, setStep] = useState<"form" | "ask-webauthn">("form");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -36,18 +40,20 @@ export default function ChangePasswordPage() {
   const [webAuthnBusy, setWebAuthnBusy] = useState(false);
   const [webAuthnStatus, setWebAuthnStatus] = useState<string | null>(null);
 
-  const showWebAuthnSection = !user?.mustChangePassword;
+  const showAccountSection = !wasForced || step !== "form";
 
   function reloadCredentials() {
     api.get<WebAuthnCredentialSummary[]>("/auth/webauthn/credentials").then(setCredentials);
   }
 
   useEffect(() => {
-    if (!showWebAuthnSection) return;
     setWebAuthnSupported(browserSupportsWebAuthn());
-    reloadCredentials();
+  }, []);
+
+  useEffect(() => {
+    if (!wasForced) reloadCredentials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showWebAuthnSection]);
+  }, [wasForced]);
 
   async function registerDevice() {
     setWebAuthnStatus(null);
@@ -58,8 +64,10 @@ export default function ChangePasswordPage() {
       await api.post("/auth/webauthn/register-verify", { response: attResponse, deviceLabel: guessDeviceLabel() });
       setWebAuthnStatus("Face ID/huella activada en este dispositivo.");
       reloadCredentials();
+      return true;
     } catch (err) {
       setWebAuthnStatus(err instanceof Error ? err.message : "No se pudo activar Face ID/huella");
+      return false;
     } finally {
       setWebAuthnBusy(false);
     }
@@ -90,7 +98,11 @@ export default function ChangePasswordPage() {
     try {
       await api.post("/auth/change-password", { currentPassword, newPassword });
       markPasswordChanged();
-      router.push("/");
+      if (wasForced && webAuthnSupported) {
+        setStep("ask-webauthn");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo cambiar la contraseña");
     } finally {
@@ -98,58 +110,89 @@ export default function ChangePasswordPage() {
     }
   }
 
-  return (
+  async function onAcceptWebAuthn() {
+    await registerDevice();
+    router.push("/");
+  }
+
+  const content = (
     <div className="flex min-h-screen flex-col items-center gap-5 bg-gradient-to-b from-blue-50/60 to-slate-50 px-4 py-10">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg shadow-gray-200/50">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Cambia tu contraseña</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {user?.mustChangePassword
-              ? "Por seguridad, debes poner tu propia contraseña antes de continuar."
-              : "Escribe tu contraseña actual y la nueva."}
-          </p>
-        </div>
+      {step === "ask-webauthn" ? (
+        <Card className="w-full max-w-sm space-y-4 text-center">
+          <Fingerprint className="mx-auto h-8 w-8 text-blue-600" aria-hidden="true" />
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">¿Activar Face ID / huella?</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              La próxima vez podrás entrar en este dispositivo sin escribir la contraseña. Puedes activarlo o
+              quitarlo cuando quieras desde &quot;Mi cuenta&quot;.
+            </p>
+          </div>
 
-        {error && (
-          <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {error}
-          </p>
-        )}
+          {webAuthnStatus && <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">{webAuthnStatus}</p>}
 
-        <PasswordField
-          label="Contraseña actual"
-          required
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-        />
-        <PasswordField
-          label="Nueva contraseña"
-          required
-          minLength={6}
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-        />
-        <PasswordField
-          label="Confirmar nueva contraseña"
-          required
-          minLength={6}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-
-        <Button type="submit" busy={busy} className="w-full" icon={CheckCircle2}>
-          {busy ? "Guardando..." : "Guardar contraseña"}
-        </Button>
-
-        {user?.mustChangePassword && (
-          <button type="button" onClick={logout} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
-            Cerrar sesión
+          <Button busy={webAuthnBusy} onClick={onAcceptWebAuthn} icon={Fingerprint} className="w-full">
+            Sí, activarlo
+          </Button>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="w-full text-center text-sm text-gray-400 hover:text-gray-600"
+          >
+            Ahora no
           </button>
-        )}
-      </form>
+        </Card>
+      ) : (
+        <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5 rounded-2xl border border-gray-100 bg-white p-8 shadow-lg shadow-gray-200/50">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Cambia tu contraseña</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {wasForced
+                ? "Por seguridad, debes poner tu propia contraseña antes de continuar."
+                : "Escribe tu contraseña actual y la nueva."}
+            </p>
+          </div>
 
-      {showWebAuthnSection && webAuthnSupported && (
+          {error && (
+            <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {error}
+            </p>
+          )}
+
+          <PasswordField
+            label="Contraseña actual"
+            required
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+          <PasswordField
+            label="Nueva contraseña"
+            required
+            minLength={6}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <PasswordField
+            label="Confirmar nueva contraseña"
+            required
+            minLength={6}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+
+          <Button type="submit" busy={busy} className="w-full" icon={CheckCircle2}>
+            {busy ? "Guardando..." : "Guardar contraseña"}
+          </Button>
+
+          {wasForced && (
+            <button type="button" onClick={logout} className="w-full text-center text-sm text-gray-400 hover:text-gray-600">
+              Cerrar sesión
+            </button>
+          )}
+        </form>
+      )}
+
+      {showAccountSection && webAuthnSupported && step === "form" && (
         <Card className="w-full max-w-sm space-y-4">
           <div>
             <h2 className="flex items-center gap-1.5 font-medium text-gray-800">
@@ -162,9 +205,7 @@ export default function ChangePasswordPage() {
             </p>
           </div>
 
-          {webAuthnStatus && (
-            <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">{webAuthnStatus}</p>
-          )}
+          {webAuthnStatus && <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">{webAuthnStatus}</p>}
 
           {credentials.length > 0 && (
             <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100 text-sm">
@@ -188,6 +229,18 @@ export default function ChangePasswordPage() {
           </Button>
         </Card>
       )}
+    </div>
+  );
+
+  if (wasForced) return content;
+
+  return (
+    <div className="md:pl-60">
+      <NavBar />
+      <main className="mx-auto max-w-3xl px-4 pt-6">
+        <BackLink />
+      </main>
+      {content}
     </div>
   );
 }

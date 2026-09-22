@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Building2, ClipboardList, LayoutDashboard, LogOut, LucideIcon, UserCog, UserPlus, Users } from "lucide-react";
+import { Building2, ClipboardList, KeyRound, LayoutDashboard, LogOut, LucideIcon, UserCog, UserPlus, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "@/components/ui";
 
@@ -34,6 +34,9 @@ function useNavItems(): NavItem[] {
     items.push({ href: "/admin/users", icon: UserCog, label: "Usuarios" });
     items.push({ href: "/supervisor", icon: LayoutDashboard, label: "Panel supervisor" });
     items.push({ href: "/supervisor/matriculas", icon: ClipboardList, label: "Matrículas" });
+  }
+  if (user) {
+    items.push({ href: "/change-password", icon: KeyRound, label: "Mi cuenta" });
   }
   return items;
 }
