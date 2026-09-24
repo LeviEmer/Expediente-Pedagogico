@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ClipboardList, Search, UserPlus } from "lucide-react";
 import { api, Enrollment, Instructor } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { BackLink, Badge, EmptyState, PageHeader, TextField } from "@/components/ui";
+import { BackLink, Badge, ConfirmDialog, EmptyState, PageHeader, TextField } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 
 function matches(query: string, ...fields: (string | undefined | null)[]) {
@@ -29,6 +29,8 @@ export default function MatriculasPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showFinished, setShowFinished] = useState(false);
+  const [reassignTarget, setReassignTarget] = useState<{ enrollment: Enrollment; instructor: Instructor } | null>(null);
+  const [reassigning, setReassigning] = useState(false);
 
   function reload() {
     api.get<Enrollment[]>("/enrollments").then(setEnrollments);
@@ -49,15 +51,19 @@ export default function MatriculasPage() {
     [enrollments, query, showFinished],
   );
 
-  async function reassignInstructor(enrollmentId: string, instructorId: string) {
-    if (!instructorId) return;
+  async function confirmReassign() {
+    if (!reassignTarget) return;
     setStatus(null);
+    setReassigning(true);
     try {
-      await api.patch(`/enrollments/${enrollmentId}/claim-instructor`, { instructorId });
+      await api.patch(`/enrollments/${reassignTarget.enrollment.id}/claim-instructor`, { instructorId: reassignTarget.instructor.id });
       setStatus("Instructor reasignado.");
       reload();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Error al reasignar instructor");
+    } finally {
+      setReassigning(false);
+      setReassignTarget(null);
     }
   }
 
@@ -126,7 +132,10 @@ export default function MatriculasPage() {
                     {!isReadOnly && (
                       <select
                         value={e.instructor?.id ?? ""}
-                        onChange={(ev) => reassignInstructor(e.id, ev.target.value)}
+                        onChange={(ev) => {
+                          const instructor = instructors.find((i) => i.id === ev.target.value);
+                          if (instructor) setReassignTarget({ enrollment: e, instructor });
+                        }}
                         className="rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
                       >
                         <option value="" disabled>
@@ -151,6 +160,23 @@ export default function MatriculasPage() {
           )}
         </section>
       </main>
+
+      <ConfirmDialog
+        open={!!reassignTarget}
+        title="¿Reasignar el instructor?"
+        description={
+          reassignTarget && (
+            <>
+              <strong>{reassignTarget.enrollment.student?.firstName} {reassignTarget.enrollment.student?.lastName}</strong> queda
+              a cargo de <strong>{reassignTarget.instructor.firstName} {reassignTarget.instructor.lastName}</strong>.
+            </>
+          )
+        }
+        confirmLabel="Reasignar"
+        busy={reassigning}
+        onConfirm={confirmReassign}
+        onCancel={() => setReassignTarget(null)}
+      />
     </div>
   );
 }

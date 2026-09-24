@@ -87,6 +87,8 @@ export default function SupervisorPage() {
   const [studentEdit, setStudentEdit] = useState({ firstName: "", lastName: "", email: "", phone: "" });
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deactivateInstructorTarget, setDeactivateInstructorTarget] = useState<Instructor | null>(null);
+  const [busyInstructorId, setBusyInstructorId] = useState<string | null>(null);
 
   function reload() {
     api.get<Student[]>("/students").then(setStudents);
@@ -162,11 +164,15 @@ export default function SupervisorPage() {
 
   async function toggleInstructorActive(i: Instructor) {
     setStatus(null);
+    setBusyInstructorId(i.id);
     try {
       await api.patch(`/instructors/${i.id}`, { active: !i.active });
       reload();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Error al cambiar el estado del instructor");
+    } finally {
+      setBusyInstructorId(null);
+      setDeactivateInstructorTarget(null);
     }
   }
 
@@ -354,7 +360,10 @@ export default function SupervisorPage() {
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                             Editar
                           </button>
-                          <button onClick={() => toggleInstructorActive(i)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50">
+                          <button
+                            onClick={() => (i.active === false ? toggleInstructorActive(i) : setDeactivateInstructorTarget(i))}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50"
+                          >
                             <Power className="h-3.5 w-3.5" aria-hidden="true" />
                             {i.active === false ? "Reactivar" : "Desactivar"}
                           </button>
@@ -476,6 +485,24 @@ export default function SupervisorPage() {
         busy={deleting}
         onConfirm={confirmDeleteStudent}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deactivateInstructorTarget}
+        title="¿Desactivar este instructor?"
+        description={
+          deactivateInstructorTarget && (
+            <>
+              <strong>{deactivateInstructorTarget.firstName} {deactivateInstructorTarget.lastName}</strong> ya no va a
+              poder iniciar sesión ni que le asignen alumnos nuevos. Lo puedes reactivar cuando quieras.
+            </>
+          )
+        }
+        confirmLabel="Desactivar"
+        variant="danger"
+        busy={!!deactivateInstructorTarget && busyInstructorId === deactivateInstructorTarget.id}
+        onConfirm={() => deactivateInstructorTarget && toggleInstructorActive(deactivateInstructorTarget)}
+        onCancel={() => setDeactivateInstructorTarget(null)}
       />
     </div>
   );

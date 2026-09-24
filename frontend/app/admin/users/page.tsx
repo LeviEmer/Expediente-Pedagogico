@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, KeyRound, Power, Search, UserPlus, Users } from "lucide-react";
 import { api, AdminUser, Branch } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { BackLink, Badge, Button, EmptyState, PageHeader, PasswordInput, TextField } from "@/components/ui";
+import { BackLink, Badge, Button, ConfirmDialog, EmptyState, PageHeader, PasswordInput, TextField } from "@/components/ui";
 
 // Contraseña desechable: se asigna por defecto a las cuentas nuevas y a los
 // reseteos hechos por el admin — el propio usuario la cambia en su próximo
@@ -45,6 +45,8 @@ export default function AdminUsersPage() {
 
   const [resetTargetId, setResetTargetId] = useState<string | null>(null);
   const [resetValue, setResetValue] = useState("");
+  const [blockTarget, setBlockTarget] = useState<AdminUser | null>(null);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   function reload() {
     api.get<AdminUser[]>("/users").then(setUsers);
@@ -83,11 +85,15 @@ export default function AdminUsersPage() {
 
   async function toggleUserActive(u: AdminUser) {
     setStatus(null);
+    setBusyUserId(u.id);
     try {
       await api.patch(`/users/${u.id}`, { active: !u.active });
       reload();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Error al cambiar el acceso de la cuenta");
+    } finally {
+      setBusyUserId(null);
+      setBlockTarget(null);
     }
   }
 
@@ -226,7 +232,7 @@ export default function AdminUsersPage() {
                           Resetear contraseña
                         </button>
                         <button
-                          onClick={() => toggleUserActive(u)}
+                          onClick={() => (u.active ? setBlockTarget(u) : toggleUserActive(u))}
                           className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50"
                         >
                           <Power className="h-3.5 w-3.5" aria-hidden="true" />
@@ -261,6 +267,17 @@ export default function AdminUsersPage() {
             </ul>
           )}
         </section>
+
+        <ConfirmDialog
+          open={!!blockTarget}
+          title="¿Bloquear el acceso de esta cuenta?"
+          description={blockTarget && <><strong>{displayName(blockTarget) ?? blockTarget.email}</strong> ya no va a poder iniciar sesión hasta que la desbloquees. No se borra ningún dato.</>}
+          confirmLabel="Bloquear"
+          variant="danger"
+          busy={!!blockTarget && busyUserId === blockTarget.id}
+          onConfirm={() => blockTarget && toggleUserActive(blockTarget)}
+          onCancel={() => setBlockTarget(null)}
+        />
       </main>
     </div>
   );

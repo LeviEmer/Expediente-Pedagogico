@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { Building2, CheckCircle2, Plus, Power } from "lucide-react";
 import { api, Branch } from "@/lib/api";
 import { NavBar } from "@/components/NavBar";
-import { Badge, Button, EmptyState, PageHeader } from "@/components/ui";
+import { Badge, Button, ConfirmDialog, EmptyState, PageHeader } from "@/components/ui";
 
 export default function AdminPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [newBranchName, setNewBranchName] = useState("");
+  const [deactivateTarget, setDeactivateTarget] = useState<Branch | null>(null);
+  const [busyBranchId, setBusyBranchId] = useState<string | null>(null);
 
   function reload() {
     api.get<Branch[]>("/branches").then(setBranches);
@@ -32,11 +34,15 @@ export default function AdminPage() {
 
   async function toggleBranchActive(b: Branch) {
     setStatus(null);
+    setBusyBranchId(b.id);
     try {
       await api.patch(`/branches/${b.id}`, { active: !b.active });
       reload();
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Error al cambiar el estado de la sucursal");
+    } finally {
+      setBusyBranchId(null);
+      setDeactivateTarget(null);
     }
   }
 
@@ -85,7 +91,7 @@ export default function AdminPage() {
                     {!b.active && <Badge tone="gray">Inactiva</Badge>}
                   </span>
                   <button
-                    onClick={() => toggleBranchActive(b)}
+                    onClick={() => (b.active ? setDeactivateTarget(b) : toggleBranchActive(b))}
                     className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-gray-500 hover:bg-gray-50"
                   >
                     <Power className="h-3.5 w-3.5" aria-hidden="true" />
@@ -96,6 +102,17 @@ export default function AdminPage() {
             </ul>
           )}
         </section>
+
+        <ConfirmDialog
+          open={!!deactivateTarget}
+          title="¿Desactivar esta sucursal?"
+          description={deactivateTarget && <>Nadie va a poder ver ni gestionar datos de <strong>{deactivateTarget.name}</strong> mientras esté desactivada. La puedes reactivar cuando quieras.</>}
+          confirmLabel="Desactivar"
+          variant="danger"
+          busy={!!deactivateTarget && busyBranchId === deactivateTarget.id}
+          onConfirm={() => deactivateTarget && toggleBranchActive(deactivateTarget)}
+          onCancel={() => setDeactivateTarget(null)}
+        />
       </main>
     </div>
   );

@@ -28,6 +28,8 @@ export default function EnrollmentHistoryPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reopenTarget, setReopenTarget] = useState<string | null>(null);
+  const [resendSessionTarget, setResendSessionTarget] = useState<string | null>(null);
+  const [confirmResendFinal, setConfirmResendFinal] = useState(false);
   const isSupervisorLike = user?.role === "SUPERVISOR" || user?.role === "ADMIN";
 
   function reload() {
@@ -55,6 +57,7 @@ export default function EnrollmentHistoryPage() {
       setNotice(err instanceof Error ? err.message : "Error al reenviar el correo");
     } finally {
       setBusySessionId(null);
+      setResendSessionTarget(null);
     }
   }
 
@@ -74,6 +77,7 @@ export default function EnrollmentHistoryPage() {
   }
 
   async function resendFinalReport() {
+    setBusySessionId("final");
     setNotice(null);
     try {
       const res = await api.post<{ sent: boolean }>(`/enrollments/${enrollmentId}/resend-final-report`);
@@ -81,6 +85,9 @@ export default function EnrollmentHistoryPage() {
       reload();
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Error al reenviar el reporte final");
+    } finally {
+      setBusySessionId(null);
+      setConfirmResendFinal(false);
     }
   }
 
@@ -139,7 +146,7 @@ export default function EnrollmentHistoryPage() {
                 ? `Reporte final enviado (${new Date(enrollment.finalReportSentAt).toLocaleString("es-CR")})`
                 : "El reporte final no se pudo enviar."}
             </span>
-            <button onClick={resendFinalReport} className="self-start font-medium underline sm:self-auto">
+            <button onClick={() => setConfirmResendFinal(true)} className="self-start font-medium underline sm:self-auto">
               Reenviar
             </button>
           </div>
@@ -230,7 +237,7 @@ export default function EnrollmentHistoryPage() {
                     {s.status === "CERRADA" && (
                       <>
                         <button
-                          onClick={() => resendSessionReport(s.id)}
+                          onClick={() => setResendSessionTarget(s.id)}
                           disabled={busySessionId === s.id}
                           className="text-xs font-medium text-blue-700 hover:underline disabled:opacity-50"
                         >
@@ -301,6 +308,26 @@ export default function EnrollmentHistoryPage() {
           busy={!!reopenTarget && busySessionId === reopenTarget}
           onConfirm={() => reopenTarget && reopenSession(reopenTarget)}
           onCancel={() => setReopenTarget(null)}
+        />
+
+        <ConfirmDialog
+          open={!!resendSessionTarget}
+          title="¿Reenviar este correo?"
+          description="Se le vuelve a mandar el reporte de esa clase al alumno (y copia al instructor y supervisores)."
+          confirmLabel="Reenviar"
+          busy={!!resendSessionTarget && busySessionId === resendSessionTarget}
+          onConfirm={() => resendSessionTarget && resendSessionReport(resendSessionTarget)}
+          onCancel={() => setResendSessionTarget(null)}
+        />
+
+        <ConfirmDialog
+          open={confirmResendFinal}
+          title="¿Reenviar el reporte final?"
+          description="Se le vuelve a mandar por correo el reporte general en PDF al alumno (y copia al instructor y supervisores)."
+          confirmLabel="Reenviar"
+          busy={busySessionId === "final"}
+          onConfirm={resendFinalReport}
+          onCancel={() => setConfirmResendFinal(false)}
         />
       </main>
     </div>
