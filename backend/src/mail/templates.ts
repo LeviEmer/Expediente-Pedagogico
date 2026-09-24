@@ -11,11 +11,11 @@ function esc(value: unknown): string {
   return String(value ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c] as string));
 }
 
-function baseLayout(title: string, body: string): string {
+function baseLayout(title: string, body: string, logoUrl: string): string {
   return `
   <div style="font-family: Arial, Helvetica, sans-serif; max-width: 680px; margin: 0 auto; color: #1f2933;">
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-      <img src="cid:school-logo" alt="" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e5e7eb; display: block;" />
+      <img src="${esc(logoUrl)}" alt="" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e5e7eb; display: block;" />
       <p style="margin: 0; font-size: 11px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; color: #2563eb;">
         ${esc(SCHOOL_NAME)}
       </p>
@@ -28,7 +28,7 @@ function baseLayout(title: string, body: string): string {
   </div>`;
 }
 
-export function passwordResetHtml(params: { resetUrl: string }): string {
+export function passwordResetHtml(params: { resetUrl: string; logoUrl: string }): string {
   const body = `
     <p>Recibimos una solicitud para restablecer tu contraseña.</p>
     <p>
@@ -38,7 +38,7 @@ export function passwordResetHtml(params: { resetUrl: string }): string {
     </p>
     <p style="font-size:13px;color:#6b7280;">Este enlace vence en 1 hora. Si tú no lo pediste, ignora este correo — tu contraseña actual sigue funcionando.</p>
   `;
-  return baseLayout("Restablecer contraseña", body);
+  return baseLayout("Restablecer contraseña", body, params.logoUrl);
 }
 
 type CriteriaSnapshotItem = { text: string; rating: string | null };
@@ -82,6 +82,7 @@ export function dailyReportHtml(params: {
   instructorName: string;
   courseTypeName: string;
   sessionDate: Date;
+  logoUrl: string;
   lessons: Array<{
     lessonCode: string;
     lessonName: string;
@@ -115,7 +116,7 @@ export function dailyReportHtml(params: {
     ${lessonsHtml}
   `;
 
-  return baseLayout("Reporte de clase diaria", body);
+  return baseLayout("Reporte de clase diaria", body, params.logoUrl);
 }
 
 // Cuerpo corto del correo final — el detalle completo de las 16 lecciones va
@@ -127,6 +128,7 @@ export function finalReportSummaryHtml(params: {
   startDate: Date;
   endDate: Date;
   sessionsCount: number;
+  logoUrl: string;
   generalEvaluation: {
     scores: Array<{ dimensionName: string; level: number | null }>;
     personalObservations: string | null;
@@ -152,6 +154,6 @@ export function finalReportSummaryHtml(params: {
     <p>Adjunto a este correo encontrarás el <strong>PDF con el detalle completo</strong> de las 16 lecciones del curso.</p>
   `;
 
-  return baseLayout("Reporte general final", body);
+  return baseLayout("Reporte general final", body, params.logoUrl);
 }
 

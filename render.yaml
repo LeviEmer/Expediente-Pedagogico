@@ -11,11 +11,7 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: GMAIL_USER
-        sync: false
-      - key: GMAIL_APP_PASSWORD
-        sync: false
-      - key: MAIL_FROM
+      - key: RESEND_API_KEY
         sync: false
       - key: MAIL_BCC_ADMIN
         sync: false
