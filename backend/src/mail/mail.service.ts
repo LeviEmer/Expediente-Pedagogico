@@ -24,7 +24,17 @@ export class MailService {
     const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
     this.transporter =
       gmailUser && gmailAppPassword
-        ? nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: gmailAppPassword } })
+        ? nodemailer.createTransport({
+            service: "gmail",
+            auth: { user: gmailUser, pass: gmailAppPassword },
+            // Sin esto, si el proveedor de hosting bloquea el puerto SMTP
+            // saliente, el envío se queda colgado indefinidamente en vez de
+            // fallar — y con eso se cuelga también la petición HTTP que lo
+            // espera (login, cierre de clase, etc.).
+            connectionTimeout: 10_000,
+            greetingTimeout: 10_000,
+            socketTimeout: 10_000,
+          })
         : null;
     const fromAddress = process.env.MAIL_FROM ?? gmailUser ?? "no-reply@tuescuela.com";
     this.from = `${SCHOOL_NAME} <${fromAddress}>`;
