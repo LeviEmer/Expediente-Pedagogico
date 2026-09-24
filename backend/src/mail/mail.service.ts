@@ -1,30 +1,58 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Resend } from "resend";
+import type { SendMailOptions } from "nodemailer";
+import MailComposer from "nodemailer/lib/mail-composer";
+import { OAuth2Client } from "google-auth-library";
 import { dailyReportHtml, finalReportSummaryHtml, passwordResetHtml, SCHOOL_NAME } from "./templates";
 import { buildFinalReportPdf, FinalReportPdfParams } from "./final-report-pdf";
 
+// Se manda por el API de Gmail (HTTPS), no por SMTP — Render bloquea el
+// puerto SMTP saliente en su plan gratis, pero nunca bloquea HTTPS. La
+// autorización (Client ID/Secret + Refresh Token) se hizo una sola vez desde
+// Google Cloud Console + OAuth Playground, con la app en modo "Producción"
+// para que el token no venza. MailComposer solo arma el mensaje MIME en
+// memoria — no abre ninguna conexión de red, así que no le afecta el bloqueo
+// de puerto.
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly resend: Resend | null;
+  private readonly oauth2Client: OAuth2Client | null;
   private readonly from: string;
   private readonly bccAdmin: string | undefined;
   private readonly logoUrl: string;
 
   constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    this.resend = apiKey ? new Resend(apiKey) : null;
-    // Resend, sin un dominio propio verificado, solo deja enviar desde su
-    // remitente de pruebas — por eso el "from" no usa MAIL_FROM/GMAIL_USER
-    // como antes con Gmail SMTP. Cuando la escuela tenga dominio propio, se
-    // verifica en Resend y este remitente pasa a ser el de ese dominio.
-    this.from = `${SCHOOL_NAME} <onboarding@resend.dev>`;
+    const clientId = process.env.GMAIL_CLIENT_ID;
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET;
+    const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+    if (clientId && clientSecret && refreshToken) {
+      this.oauth2Client = new OAuth2Client({ clientId, clientSecret });
+      this.oauth2Client.setCredentials({ refresh_token: refreshToken });
+    } else {
+      this.oauth2Client = null;
+    }
+    const gmailUser = process.env.GMAIL_USER;
+    const fromAddress = process.env.MAIL_FROM ?? gmailUser ?? "no-reply@tuescuela.com";
+    this.from = `${SCHOOL_NAME} <${fromAddress}>`;
     this.bccAdmin = process.env.MAIL_BCC_ADMIN;
     const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
     this.logoUrl = `${frontendUrl}/logo.jpg`;
-    if (!this.resend) {
-      this.logger.warn("RESEND_API_KEY no configurado: los correos se registrarán en consola, no se enviarán.");
+    if (!this.oauth2Client) {
+      this.logger.warn(
+        "GMAIL_CLIENT_ID/GMAIL_CLIENT_SECRET/GMAIL_REFRESH_TOKEN no configurados: los correos se registrarán en consola, no se enviarán.",
+      );
     }
+  }
+
+  private async getAccessToken(): Promise<string> {
+    const res = await this.oauth2Client!.getAccessToken();
+    if (!res.token) throw new Error("No se pudo obtener el access token de Gmail");
+    return res.token;
+  }
+
+  private async buildRawMessage(mail: SendMailOptions): Promise<string> {
+    const composer = new MailComposer(mail);
+    const message = await composer.compile().build();
+    return message.toString("base64url");
   }
 
   // `to` va al alumno (destinatario principal); `cc` es todo lo demás —
@@ -41,7 +69,7 @@ export class MailService {
     const ccList = Array.from(
       new Set([...cc, includeBccAdmin ? this.bccAdmin : undefined].filter((e): e is string => !!e && e !== to)),
     );
-    if (!this.resend) {
+    if (!this.oauth2Client) {
       this.logger.log(
         `[correo simulado] Para: ${to} | Cc: ${ccList.join(", ") || "(ninguno)"} | Asunto: ${subject}${
           extraAttachments.length ? ` | Adjuntos: ${extraAttachments.map((a) => a.filename).join(", ")}` : ""
@@ -49,18 +77,24 @@ export class MailService {
       );
       return { simulated: true };
     }
-    const result = await this.resend.emails.send({
+    const raw = await this.buildRawMessage({
       from: this.from,
       to,
       cc: ccList.length ? ccList : undefined,
       subject,
       html,
-      attachments: extraAttachments.length ? extraAttachments : undefined,
+      attachments: extraAttachments,
     });
-    if (result.error) {
-      throw new Error(`Resend: ${result.error.message}`);
+    const accessToken = await this.getAccessToken();
+    const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ raw }),
+    });
+    if (!res.ok) {
+      throw new Error(`Gmail API: ${res.status} ${await res.text()}`);
     }
-    return result.data;
+    return res.json();
   }
 
   async sendDailyReport(

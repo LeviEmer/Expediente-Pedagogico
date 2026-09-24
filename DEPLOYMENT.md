@@ -18,7 +18,12 @@ Todas las cuentas deben crearse **a nombre del dueño de la escuela** (su correo
 3. Completar las variables de entorno marcadas como `sync: false` en el dashboard de Render:
    - `DATABASE_URL` → la cadena de Supabase del paso 1.
    - `JWT_SECRET` → una cadena aleatoria larga (por ejemplo, generarla con `openssl rand -base64 32`).
-   - `RESEND_API_KEY`, `MAIL_BCC_ADMIN` → envío de reportes por correo vía [Resend](https://resend.com) (API HTTP, no SMTP — Render bloquea el puerto SMTP saliente en su plan gratis, por eso no se usa Gmail SMTP directo). La API key se genera en el dashboard de Resend → API Keys. Sin dominio propio verificado en Resend, los correos salen desde `onboarding@resend.dev`; al verificar un dominio propio se puede volver a mandar desde un correo de la escuela.
+   - `GMAIL_USER`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `MAIL_FROM`, `MAIL_BCC_ADMIN` → envío de reportes por correo vía el **API de Gmail** (HTTPS, no SMTP — Render bloquea el puerto SMTP saliente en su plan gratis, por eso no se usa SMTP directo). Se manda desde el Gmail real de la escuela, no desde un dominio de terceros. Configuración de una sola vez, hecha desde [Google Cloud Console](https://console.cloud.google.com):
+     1. Crear un proyecto y activar el "Gmail API".
+     2. Configurar la pantalla de consentimiento OAuth (tipo Externo), agregar el scope `https://www.googleapis.com/auth/gmail.send`, completar nombre de la app + correo de asistencia + página principal + política de privacidad (ya existe en `/privacidad`), y pasar el estado de publicación a **"En producción"** (así el token no vence cada 7 días).
+     3. Crear credenciales OAuth de tipo "Aplicación web", con URI de redirección `https://developers.google.com/oauthplayground`.
+     4. En [OAuth Playground](https://developers.google.com/oauthplayground/) → engranaje de configuración → "Use your own OAuth credentials" → pegar el Client ID/Secret → autorizar el scope `gmail.send` con la cuenta de Gmail de la escuela → "Exchange authorization code for tokens" → copiar el **Refresh Token** (no vence).
+     5. `GMAIL_CLIENT_ID`/`GMAIL_CLIENT_SECRET` (de las credenciales), `GMAIL_REFRESH_TOKEN` (del paso anterior), `GMAIL_USER` (la cuenta de Gmail usada).
    - `FRONTEND_URL` → se completa después del paso 3, con la URL que dé Vercel.
 4. Al desplegar, correr el seed una sola vez desde la shell de Render (**Shell** tab del servicio): `pnpm --filter backend prisma:seed`.
 5. Anotar la URL pública que asigna Render (algo como `https://expediente-pedagogico-api.onrender.com`).
