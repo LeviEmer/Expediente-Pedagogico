@@ -92,16 +92,10 @@ export class AuthService {
         },
       });
       const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3000";
-      try {
-        await this.mail.sendPasswordReset({
-          to: user.email,
-          resetUrl: `${frontendUrl}/reset-password?token=${token}`,
-        });
-      } catch (err) {
-        // DIAGNÓSTICO TEMPORAL — quitar apenas se identifique la causa real
-        // del envío colgado; no dejar el detalle del error expuesto en prod.
-        throw new BadRequestException(`DEBUG mail error: ${err instanceof Error ? err.message : String(err)}`);
-      }
+      await this.mail.sendPasswordReset({
+        to: user.email,
+        resetUrl: `${frontendUrl}/reset-password?token=${token}`,
+      });
     }
     return { ok: true };
   }
